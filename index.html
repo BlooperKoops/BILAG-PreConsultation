@@ -112,7 +112,7 @@
 
   .app-container {
     width: 100%;
-    max-width: 480px;
+    max-width: clamp(480px, 90vw, 880px);
     background: var(--surface);
     display: flex;
     flex-direction: column;
@@ -121,20 +121,25 @@
     position: relative;
   }
 
+  @media (min-width: 640px) {
+    body { padding-block: 28px; }
+    .app-container { min-height: auto; border-radius: 18px; overflow: hidden; }
+  }
+
   header.app-header {
     background: linear-gradient(160deg, var(--header-bg-2), var(--header-bg));
-    padding: 22px 20px 18px;
+    padding: clamp(22px, 3vw, 32px) clamp(20px, 4vw, 40px) clamp(18px, 2.4vw, 24px);
     text-align: center;
     border-bottom: 4px solid var(--brand-purple);
   }
   header.app-header img.logo {
     display: block;
     margin: 0 auto 10px;
-    height: 34px;
+    height: clamp(34px, 4vw, 46px);
     width: auto;
   }
   header.app-header p.subtitle {
-    font-size: 0.8rem;
+    font-size: clamp(0.8rem, 0.75rem + 0.2vw, 0.95rem);
     color: #E9D9F2;
     margin: 0;
     letter-spacing: 0.2px;
@@ -143,13 +148,13 @@
   .progress-container { background: var(--surface-2); height: 6px; width: 100%; }
   .progress-bar { background: var(--accent); height: 100%; width: 0%; transition: width 0.3s ease; }
 
-  main { padding: 22px 18px; flex: 1; display: flex; flex-direction: column; }
+  main { padding: clamp(22px, 3vw, 36px) clamp(18px, 5vw, 48px); flex: 1; display: flex; flex-direction: column; }
 
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 18px;
+    padding: clamp(18px, 2.4vw, 28px);
     margin-bottom: 14px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.03);
   }
@@ -167,12 +172,12 @@
     letter-spacing: 0.4px;
   }
 
-  h2 { font-size: 1.08rem; color: var(--header-bg-2); margin: 0 0 12px; line-height: 1.4; }
+  h2 { font-size: clamp(1.08rem, 1rem + 0.6vw, 1.5rem); color: var(--header-bg-2); margin: 0 0 12px; line-height: 1.4; }
   :root[data-theme="dark"] h2 { color: var(--accent-hover); }
-  h3.section-title { font-size: 0.85rem; margin: 0 0 8px; color: var(--header-bg-2); text-transform: uppercase; letter-spacing: 0.4px; }
+  h3.section-title { font-size: clamp(0.85rem, 0.8rem + 0.2vw, 1rem); margin: 0 0 8px; color: var(--header-bg-2); text-transform: uppercase; letter-spacing: 0.4px; }
   :root[data-theme="dark"] h3.section-title { color: var(--accent-hover); }
-  p.description { font-size: 0.9rem; color: var(--text-muted); margin: 0 0 16px; line-height: 1.55; }
-  p.section-hint { font-size: 0.8rem; color: var(--text-muted); margin: -4px 0 10px; line-height: 1.4; }
+  p.description { font-size: clamp(0.9rem, 0.86rem + 0.2vw, 1.05rem); color: var(--text-muted); margin: 0 0 16px; line-height: 1.55; }
+  p.section-hint { font-size: clamp(0.8rem, 0.77rem + 0.15vw, 0.92rem); color: var(--text-muted); margin: -4px 0 10px; line-height: 1.4; }
 
   .options-group { display: flex; flex-direction: column; gap: 10px; }
 
@@ -180,9 +185,9 @@
     background: var(--surface);
     border: 2px solid var(--border);
     border-radius: 10px;
-    padding: 14px 16px;
+    padding: clamp(14px, 1.6vw, 18px) clamp(16px, 2vw, 22px);
     text-align: left;
-    font-size: 0.95rem;
+    font-size: clamp(0.95rem, 0.9rem + 0.2vw, 1.05rem);
     color: var(--text);
     font-weight: 500;
     cursor: pointer;
@@ -196,7 +201,7 @@
   .opt-arrow { color: var(--text-muted); flex-shrink: 0; }
 
   footer.app-footer {
-    padding: 14px 18px;
+    padding: clamp(14px, 1.8vw, 20px) clamp(18px, 5vw, 48px);
     background: var(--surface);
     border-top: 1px solid var(--border);
     display: flex;
@@ -205,9 +210,9 @@
 
   .btn {
     flex: 1;
-    padding: 13px;
+    padding: clamp(13px, 1.4vw, 16px);
     border-radius: 8px;
-    font-size: 0.93rem;
+    font-size: clamp(0.93rem, 0.88rem + 0.2vw, 1.03rem);
     font-weight: 600;
     border: none;
     cursor: pointer;
@@ -221,15 +226,15 @@
 
   .flag-card {
     border-radius: 8px;
-    padding: 12px 14px;
+    padding: clamp(12px, 1.4vw, 16px) clamp(14px, 1.8vw, 18px);
     margin-bottom: 10px;
-    font-size: 0.87rem;
+    font-size: clamp(0.87rem, 0.83rem + 0.15vw, 0.98rem);
     line-height: 1.45;
   }
   .flag-card.red { background: var(--flag-red-bg); border: 1px solid var(--flag-red-border); color: var(--flag-red-text); }
   .flag-card.yellow { background: var(--flag-yellow-bg); border: 1px solid var(--flag-yellow-border); color: var(--flag-yellow-text); }
   .flag-card.green { background: var(--flag-green-bg); border: 1px solid var(--flag-green-border); color: var(--flag-green-text); }
-  .flag-card.concern { background: var(--surface-2); border: 2px solid var(--accent); color: var(--text); font-size: 0.95rem; }
+  .flag-card.concern { background: var(--surface-2); border: 2px solid var(--accent); color: var(--text); font-size: clamp(0.95rem, 0.9rem + 0.15vw, 1.05rem); }
   .flag-card.concern .flag-title { color: var(--accent-hover); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.4px; }
   .flag-card strong.flag-title { display: block; margin-bottom: 3px; }
 
@@ -239,9 +244,9 @@
     align-items: flex-start;
     background: var(--surface-2);
     border-radius: 8px;
-    padding: 10px 12px;
+    padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.6vw, 16px);
     margin-bottom: 8px;
-    font-size: 0.87rem;
+    font-size: clamp(0.87rem, 0.83rem + 0.15vw, 0.98rem);
     line-height: 1.45;
     color: var(--text);
   }
@@ -251,7 +256,7 @@
   .doctor-item {
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 10px 12px;
+    padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.6vw, 16px);
     margin-bottom: 8px;
     display: flex;
     gap: 8px;
@@ -259,7 +264,7 @@
   }
   .doctor-item input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--accent); }
   .doctor-item .domain-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.3px; color: var(--accent-hover); font-weight: 700; display: block; margin-bottom: 2px; }
-  .doctor-item .doctor-text { font-size: 0.87rem; line-height: 1.45; color: var(--text); }
+  .doctor-item .doctor-text { font-size: clamp(0.87rem, 0.83rem + 0.15vw, 0.98rem); line-height: 1.45; color: var(--text); }
 
   .badge {
     display: inline-block;
@@ -277,13 +282,13 @@
 
   .resource-link {
     display: block;
-    padding: 10px 12px;
+    padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.6vw, 16px);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--accent-hover);
     text-decoration: none;
-    font-size: 0.85rem;
+    font-size: clamp(0.85rem, 0.81rem + 0.15vw, 0.96rem);
     font-weight: 600;
     margin-bottom: 6px;
   }
@@ -301,7 +306,7 @@
   .email-box {
     background: var(--surface-2);
     border-radius: 10px;
-    padding: 14px;
+    padding: clamp(14px, 1.6vw, 18px);
   }
   .email-box label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
   .email-row { display: flex; gap: 8px; }
@@ -383,6 +388,7 @@
 
 <script>
   const ROS_LINK = { label: "Royal Osteoporosis Society — Steroids & Bone Health", url: "https://theros.org.uk/information-and-support/causes-and-risk-factors/medicines-that-increase-your-risk/steroids-glucocorticoids-and-bone-health/", domain: "Bone Health" };
+  const CONTRACEPTION_LINK = { label: "NHS — Contraception Guide", url: "https://www.nhs.uk/contraception/", domain: "Medication Safety" };
 
   const GENERAL_RESOURCES = [
     { label: "NHS — Lupus Information", url: "https://www.nhs.uk/conditions/lupus/", domain: "General" },
@@ -490,6 +496,45 @@
     allowSkip: true
   };
 
+  // Pregnancy-potential screen is asked of everyone, framed around physical capacity to become
+  // pregnant rather than gender, so it doesn't assume or ask about anyone's gender identity.
+  // A "Yes"/"Not sure" answer unlocks a contraception question, since some SLE medications
+  // (e.g. mycophenolate, methotrexate, cyclophosphamide) can harm a pregnancy.
+  const contraceptionStep = {
+    id: "contraception", domain: "Medication Safety",
+    question: "Are you currently using a reliable method of contraception (e.g. the pill, coil/IUD, implant, injection, or consistent condom use)?",
+    options: [
+      { text: "Yes, reliably", flag: null },
+      { text: "Yes, but not consistently", flag: {
+          type: "yellow",
+          text: "Contraception is used, but not consistently.",
+          personalAction: "It's worth flagging this with your doctor today — some SLE medications need reliable contraception because they can harm a pregnancy.",
+          personalCategory: "Medication Safety",
+          clinicianBucket: "today",
+          clinicianAction: "Contraception use is inconsistent — check current medications for teratogenic potential (e.g. mycophenolate, methotrexate, cyclophosphamide) and discuss reliable contraception or a pregnancy-compatible regimen.",
+          resources: [CONTRACEPTION_LINK]
+      }},
+      { text: "No", flag: {
+          type: "red",
+          text: "Not currently using contraception.",
+          personalAction: "Please raise this with your doctor today — it's important to check your current medication is safe if there's a chance of pregnancy.",
+          personalCategory: "Medication Safety",
+          clinicianBucket: "today",
+          clinicianAction: "No contraception currently in use — urgently review current medications for teratogenicity (e.g. mycophenolate, methotrexate, cyclophosphamide, some biologics) and discuss safe contraception or pregnancy-planning options.",
+          resources: [CONTRACEPTION_LINK]
+      }},
+      { text: "Not applicable / prefer not to say", flag: {
+          type: "yellow",
+          text: "Contraception status unclear or not applicable.",
+          personalAction: "It's worth mentioning your situation to your doctor today so they can check your medication is right for you.",
+          personalCategory: "Medication Safety",
+          clinicianBucket: "today",
+          clinicianAction: "Contraception status unclear — sensitively clarify pregnancy risk and confirm current medications are appropriate.",
+          resources: [CONTRACEPTION_LINK]
+      }}
+    ]
+  };
+
   const steps = [
     {
       id: "topConcern", domain: "Your Main Concern", type: "text",
@@ -528,6 +573,24 @@
             clinicianBucket: "today",
             clinicianAction: "Medication has been hard to take regularly recently — worth a supportive review today: understanding what's getting in the way (side effects, access, understanding, mental health) and whether closer monitoring or a different regimen would help.",
             resources: []
+        }}
+      ]
+    },
+    {
+      id: "pregnancyScreen", domain: "Medication Safety",
+      question: "Is there any chance you could become pregnant? (This is about physical capacity to become pregnant — having a uterus and ovaries, and not having been through menopause or a hysterectomy/sterilisation — not about gender identity, sexuality or relationship status.)",
+      options: [
+        { text: "No", flag: null },
+        { text: "Yes", flag: null, insertNext: [contraceptionStep] },
+        { text: "Not sure", flag: null, insertNext: [contraceptionStep] },
+        { text: "Prefer not to say", flag: {
+            type: "yellow",
+            text: "Preferred not to answer the pregnancy-risk screening question.",
+            personalAction: "If this feels relevant to you, it's worth mentioning to your doctor privately today — some lupus medications can affect or be affected by pregnancy.",
+            personalCategory: "Medication Safety",
+            clinicianBucket: "today",
+            clinicianAction: "Patient preferred not to answer the pregnancy-potential screen — sensitively confirm pregnancy risk/contraception where relevant, given the teratogenic potential of some SLE medications (e.g. mycophenolate, methotrexate, cyclophosphamide).",
+            resources: [CONTRACEPTION_LINK]
         }}
       ]
     },
