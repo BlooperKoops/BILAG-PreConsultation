@@ -389,6 +389,7 @@
 <script>
   const ROS_LINK = { label: "Royal Osteoporosis Society — Steroids & Bone Health", url: "https://theros.org.uk/information-and-support/causes-and-risk-factors/medicines-that-increase-your-risk/steroids-glucocorticoids-and-bone-health/", domain: "Bone Health" };
   const CONTRACEPTION_LINK = { label: "NHS — Contraception Guide", url: "https://www.nhs.uk/contraception/", domain: "Medication Safety" };
+  const PREGNANCY_PLANNING_LINK = { label: "NHS — Trying For A Baby", url: "https://www.nhs.uk/pregnancy/trying-for-a-baby/", domain: "Medication Safety" };
 
   const GENERAL_RESOURCES = [
     { label: "NHS — Lupus Information", url: "https://www.nhs.uk/conditions/lupus/", domain: "General" },
@@ -502,25 +503,25 @@
   // (e.g. mycophenolate, methotrexate, cyclophosphamide) can harm a pregnancy.
   const contraceptionStep = {
     id: "contraception", domain: "Medication Safety",
-    question: "Are you currently using a reliable method of contraception (e.g. the pill, coil/IUD, implant, injection, or consistent condom use)?",
+    question: "Are you currently using a highly effective method of contraception (e.g. the pill, coil/IUD, implant or injection)?",
     options: [
-      { text: "Yes, reliably", flag: null },
+      { text: "Yes, consistently", flag: null },
       { text: "Yes, but not consistently", flag: {
           type: "yellow",
-          text: "Contraception is used, but not consistently.",
-          personalAction: "It's worth flagging this with your doctor today — some SLE medications need reliable contraception because they can harm a pregnancy.",
+          text: "A highly effective contraceptive method is used, but not consistently.",
+          personalAction: "It's worth flagging this with your doctor today — some SLE medications need highly effective contraception because they can harm a pregnancy.",
           personalCategory: "Medication Safety",
           clinicianBucket: "today",
-          clinicianAction: "Contraception use is inconsistent — check current medications for teratogenic potential (e.g. mycophenolate, methotrexate, cyclophosphamide) and discuss reliable contraception or a pregnancy-compatible regimen.",
+          clinicianAction: "Highly effective contraception use is inconsistent — check current medications for teratogenic potential (e.g. mycophenolate, methotrexate, cyclophosphamide) and discuss reliable contraception or a pregnancy-compatible regimen.",
           resources: [CONTRACEPTION_LINK]
       }},
-      { text: "No", flag: {
+      { text: "No, or condoms only", flag: {
           type: "red",
-          text: "Not currently using contraception.",
-          personalAction: "Please raise this with your doctor today — it's important to check your current medication is safe if there's a chance of pregnancy.",
+          text: "Not currently using a highly effective method of contraception.",
+          personalAction: "Please raise this with your doctor today — it's important to check your current medication is safe if there's a chance of pregnancy, and condoms alone aren't considered a highly effective method.",
           personalCategory: "Medication Safety",
           clinicianBucket: "today",
-          clinicianAction: "No contraception currently in use — urgently review current medications for teratogenicity (e.g. mycophenolate, methotrexate, cyclophosphamide, some biologics) and discuss safe contraception or pregnancy-planning options.",
+          clinicianAction: "No highly effective contraception currently in use — urgently review current medications for teratogenicity (e.g. mycophenolate, methotrexate, cyclophosphamide, some biologics) and discuss safe contraception or pregnancy-planning options.",
           resources: [CONTRACEPTION_LINK]
       }},
       { text: "Not applicable / prefer not to say", flag: {
@@ -529,8 +530,37 @@
           personalAction: "It's worth mentioning your situation to your doctor today so they can check your medication is right for you.",
           personalCategory: "Medication Safety",
           clinicianBucket: "today",
-          clinicianAction: "Contraception status unclear — sensitively clarify pregnancy risk and confirm current medications are appropriate.",
+          clinicianAction: "Contraception status unclear — discuss pregnancy risk and current medication compatibility today.",
           resources: [CONTRACEPTION_LINK]
+      }}
+    ]
+  };
+
+  // Asked only when the patient has said they could become pregnant, since a plan to conceive
+  // within the year has direct, time-sensitive implications for medication safety and
+  // pre-conception counselling, independent of their current contraception answer.
+  const pregnancyIntentStep = {
+    id: "pregnancyIntent", domain: "Medication Safety",
+    question: "Would you like to become pregnant in the next year?",
+    options: [
+      { text: "No", flag: null },
+      { text: "Not sure", flag: {
+          type: "yellow",
+          text: "Not sure about wanting to become pregnant within the next year.",
+          personalAction: "It's still worth mentioning this to your doctor today, so your medication plan can take it into account.",
+          personalCategory: "Medication Safety",
+          clinicianBucket: "today",
+          clinicianAction: "Unsure about pregnancy plans within the next year — briefly discuss pre-conception medication safety in case plans change.",
+          resources: [PREGNANCY_PLANNING_LINK]
+      }},
+      { text: "Yes", flag: {
+          type: "red",
+          text: "Would like to become pregnant within the next year.",
+          personalAction: "It's worth telling your doctor today, even if it feels early — some SLE medications need to be changed before you try to conceive, and pre-pregnancy planning works best well in advance.",
+          personalCategory: "Medication Safety",
+          clinicianBucket: "today",
+          clinicianAction: "Would like to become pregnant within the next year — review current medications for pre-conception safety (e.g. switch off mycophenolate/methotrexate/cyclophosphamide, review other teratogenic drugs), optimise disease control, and consider pre-pregnancy counselling/referral.",
+          resources: [PREGNANCY_PLANNING_LINK]
       }}
     ]
   };
@@ -581,7 +611,7 @@
       question: "Is there any chance you could become pregnant?",
       options: [
         { text: "No", flag: null },
-        { text: "Yes", flag: null, insertNext: [contraceptionStep] },
+        { text: "Yes", flag: null, insertNext: [pregnancyIntentStep, contraceptionStep] },
         { text: "Not sure", flag: null, insertNext: [contraceptionStep] },
         { text: "Prefer not to say", flag: {
             type: "yellow",
@@ -589,7 +619,7 @@
             personalAction: "If this feels relevant to you, it's worth mentioning to your doctor privately today — some lupus medications can affect or be affected by pregnancy.",
             personalCategory: "Medication Safety",
             clinicianBucket: "today",
-            clinicianAction: "Patient preferred not to answer the pregnancy-potential screen — sensitively confirm pregnancy risk/contraception where relevant, given the teratogenic potential of some SLE medications (e.g. mycophenolate, methotrexate, cyclophosphamide).",
+            clinicianAction: "Preferred not to answer the pregnancy-potential screen — sensitively confirm pregnancy risk/contraception where relevant, given the teratogenic potential of some SLE medications (e.g. mycophenolate, methotrexate, cyclophosphamide).",
             resources: [CONTRACEPTION_LINK]
         }}
       ]
