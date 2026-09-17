@@ -578,7 +578,7 @@
     },
     {
       id: "pregnancyScreen", domain: "Medication Safety",
-      question: "Is there any chance you could become pregnant? (This is about physical capacity to become pregnant — having a uterus and ovaries, and not having been through menopause or a hysterectomy/sterilisation — not about gender identity, sexuality or relationship status.)",
+      question: "Is there any chance you could become pregnant?",
       options: [
         { text: "No", flag: null },
         { text: "Yes", flag: null, insertNext: [contraceptionStep] },
@@ -867,6 +867,7 @@
           <div class="card">
             <span class="step-tag">${step.domain} — Question ${currentStep + 1} of ${steps.length}</span>
             <h2>${step.question}</h2>
+            ${step.hint ? `<p class="section-hint">${step.hint}</p>` : ''}
             <div class="options-group">${optionsHTML}</div>
           </div>
         `;
