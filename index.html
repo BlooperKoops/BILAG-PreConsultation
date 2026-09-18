@@ -236,6 +236,8 @@
   .flag-card.green { background: var(--flag-green-bg); border: 1px solid var(--flag-green-border); color: var(--flag-green-text); }
   .flag-card.concern { background: var(--surface-2); border: 2px solid var(--accent); color: var(--text); font-size: clamp(0.95rem, 0.9rem + 0.15vw, 1.05rem); }
   .flag-card.concern .flag-title { color: var(--accent-hover); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.4px; }
+  .flag-card.info { background: var(--gp-badge-bg); border: 1px solid var(--gp-badge-text); color: var(--text); }
+  .flag-card.info .flag-title { color: var(--gp-badge-text); }
   .flag-card strong.flag-title { display: block; margin-bottom: 3px; }
 
   .patient-action {
@@ -501,67 +503,31 @@
   // pregnant rather than gender, so it doesn't assume or ask about anyone's gender identity.
   // A "Yes"/"Not sure" answer unlocks a contraception question, since some SLE medications
   // (e.g. mycophenolate, methotrexate, cyclophosphamide) can harm a pregnancy.
+  //
+  // This domain deliberately carries no directive flag/clinicianAction text — the answers are
+  // surfaced as neutral facts in a dedicated "Flagged For Clinical Review" block (built by
+  // computeReproductiveHealthSummary()) for the clinician to interpret themselves, rather than
+  // the app recommending whether, where or what to discuss.
   const contraceptionStep = {
     id: "contraception", domain: "Medication Safety",
-    question: "Are you currently using a highly effective method of contraception (e.g. the pill, coil/IUD, implant or injection)?",
+    question: "Are you currently using a long-acting reversible contraceptive (LARC) — a coil/IUD, implant, or contraceptive injection?",
     options: [
-      { text: "Yes, consistently", flag: null },
-      { text: "Yes, but not consistently", flag: {
-          type: "yellow",
-          text: "A highly effective contraceptive method is used, but not consistently.",
-          personalAction: "It's worth flagging this with your doctor today — some SLE medications need highly effective contraception because they can harm a pregnancy.",
-          personalCategory: "Medication Safety",
-          clinicianBucket: "today",
-          clinicianAction: "Highly effective contraception use is inconsistent — check current medications for teratogenic potential (e.g. mycophenolate, methotrexate, cyclophosphamide) and discuss reliable contraception or a pregnancy-compatible regimen.",
-          resources: [CONTRACEPTION_LINK]
-      }},
-      { text: "No, or condoms only", flag: {
-          type: "red",
-          text: "Not currently using a highly effective method of contraception.",
-          personalAction: "Please raise this with your doctor today — it's important to check your current medication is safe if there's a chance of pregnancy, and condoms alone aren't considered a highly effective method.",
-          personalCategory: "Medication Safety",
-          clinicianBucket: "today",
-          clinicianAction: "No highly effective contraception currently in use — urgently review current medications for teratogenicity (e.g. mycophenolate, methotrexate, cyclophosphamide, some biologics) and discuss safe contraception or pregnancy-planning options.",
-          resources: [CONTRACEPTION_LINK]
-      }},
-      { text: "Not applicable / prefer not to say", flag: {
-          type: "yellow",
-          text: "Contraception status unclear or not applicable.",
-          personalAction: "It's worth mentioning your situation to your doctor today so they can check your medication is right for you.",
-          personalCategory: "Medication Safety",
-          clinicianBucket: "today",
-          clinicianAction: "Contraception status unclear — discuss pregnancy risk and current medication compatibility today.",
-          resources: [CONTRACEPTION_LINK]
-      }}
+      { text: "Yes", flag: null },
+      { text: "No", flag: null },
+      { text: "Not sure / prefer not to say", flag: null }
     ]
   };
 
   // Asked only when the patient has said they could become pregnant, since a plan to conceive
-  // within the year has direct, time-sensitive implications for medication safety and
-  // pre-conception counselling, independent of their current contraception answer.
+  // within the year has direct, time-sensitive implications for medication safety — surfaced the
+  // same way, as a neutral fact rather than a recommendation.
   const pregnancyIntentStep = {
     id: "pregnancyIntent", domain: "Medication Safety",
     question: "Would you like to become pregnant in the next year?",
     options: [
       { text: "No", flag: null },
-      { text: "Not sure", flag: {
-          type: "yellow",
-          text: "Not sure about wanting to become pregnant within the next year.",
-          personalAction: "It's still worth mentioning this to your doctor today, so your medication plan can take it into account.",
-          personalCategory: "Medication Safety",
-          clinicianBucket: "today",
-          clinicianAction: "Unsure about pregnancy plans within the next year — briefly discuss pre-conception medication safety in case plans change.",
-          resources: [PREGNANCY_PLANNING_LINK]
-      }},
-      { text: "Yes", flag: {
-          type: "red",
-          text: "Would like to become pregnant within the next year.",
-          personalAction: "It's worth telling your doctor today, even if it feels early — some SLE medications need to be changed before you try to conceive, and pre-pregnancy planning works best well in advance.",
-          personalCategory: "Medication Safety",
-          clinicianBucket: "today",
-          clinicianAction: "Would like to become pregnant within the next year — review current medications for pre-conception safety (e.g. switch off mycophenolate/methotrexate/cyclophosphamide, review other teratogenic drugs), optimise disease control, and consider pre-pregnancy counselling/referral.",
-          resources: [PREGNANCY_PLANNING_LINK]
-      }}
+      { text: "Not sure", flag: null },
+      { text: "Yes", flag: null }
     ]
   };
 
@@ -613,15 +579,7 @@
         { text: "No", flag: null },
         { text: "Yes", flag: null, insertNext: [pregnancyIntentStep, contraceptionStep] },
         { text: "Not sure", flag: null, insertNext: [contraceptionStep] },
-        { text: "Prefer not to say", flag: {
-            type: "yellow",
-            text: "Preferred not to answer the pregnancy-risk screening question.",
-            personalAction: "If this feels relevant to you, it's worth mentioning to your doctor privately today — some lupus medications can affect or be affected by pregnancy.",
-            personalCategory: "Medication Safety",
-            clinicianBucket: "today",
-            clinicianAction: "Preferred not to answer the pregnancy-potential screen — sensitively confirm pregnancy risk/contraception where relevant, given the teratogenic potential of some SLE medications (e.g. mycophenolate, methotrexate, cyclophosphamide).",
-            resources: [CONTRACEPTION_LINK]
-        }}
+        { text: "Prefer not to say", flag: null }
       ]
     },
     {
@@ -795,35 +753,80 @@
     const item9 = val('moodQ9');
     const total = phq2 + restIds.reduce((sum, id) => sum + val(id), 0);
 
+    // Note: this domain never sets clinicianBucket/clinicianAction — the PHQ-9 score and the
+    // safety item are surfaced as neutral facts by computeMoodScoreSummary() in a dedicated
+    // "Flagged For Clinical Review" block, rather than the app telling the clinician whether or
+    // where to discuss them. personalAction below is direct-to-patient self-care/safety-net
+    // information, not a recommendation to the clinician.
     if (item9 > 0) {
       return {
-        type: "red", domain: "Mood & Wellbeing",
+        domain: "Mood & Wellbeing",
         text: `Mood screening today (PHQ-9, score ${total}/27) included some thoughts of self-harm or that life isn't worth living.`,
         personalAction: "Please tell a member of staff or your doctor about this today — support is available right now. If you feel at risk immediately, call 999 or go to A&E, contact the Samaritans free anytime on 116 123, or text SHOUT to 85258.",
         personalCategory: "Mood — Self-Care",
-        clinicianBucket: "today",
-        clinicianAction: "PHQ-9 item 9 positive (thoughts of self-harm) — please assess safety today before the patient leaves.",
+        clinicianBucket: null,
+        clinicianAction: null,
         resources: [EVERY_MIND_MATTERS]
       };
     }
 
-    let severity, type;
-    if (total <= 4) { severity = "minimal"; type = null; }
-    else if (total <= 9) { severity = "mild"; type = "yellow"; }
-    else if (total <= 14) { severity = "moderate"; type = "yellow"; }
-    else if (total <= 19) { severity = "moderately severe"; type = "red"; }
-    else { severity = "severe"; type = "red"; }
+    let severity, show;
+    if (total <= 4) { severity = "minimal"; show = false; }
+    else if (total <= 9) { severity = "mild"; show = true; }
+    else if (total <= 14) { severity = "moderate"; show = true; }
+    else if (total <= 19) { severity = "moderately severe"; show = true; }
+    else { severity = "severe"; show = true; }
 
-    if (!type) return null;
+    if (!show) return null;
 
     return {
-      type, domain: "Mood & Wellbeing",
+      domain: "Mood & Wellbeing",
       text: `Mood screening (PHQ-9) suggests ${severity} symptoms today (score ${total}/27).`,
-      personalAction: "Gentle regular activity, a steady sleep routine, and talking to someone you trust can all help.",
+      personalAction: "Gentle regular activity, a steady sleep routine, and talking to someone you trust can all help. Self-referral to NHS Talking Therapies is also available without needing a GP appointment first.",
       personalCategory: "Mood — Self-Care",
-      clinicianBucket: "gp",
-      clinicianAction: "Discuss with your GP. Self-referral to NHS Talking Therapies is also available without needing a GP appointment first.",
+      clinicianBucket: null,
+      clinicianAction: null,
       resources: [EVERY_MIND_MATTERS, TALKING_THERAPIES]
+    };
+  }
+
+  // Neutral score display for the summary page — reports the PHQ-2/PHQ-9 result as a fact for
+  // the clinician to review and interpret, rather than the app recommending whether/where to
+  // discuss it (that routing previously lived in computeMoodFlag(), now removed).
+  function computeMoodScoreSummary() {
+    if (!answers.moodQ1 || !answers.moodQ2) return null;
+    const val = id => (answers[id] ? answers[id].value : null);
+    const phq2 = val('moodQ1') + val('moodQ2');
+    if (phq2 === 0) return null;
+
+    const restIds = ['moodQ3', 'moodQ4', 'moodQ5', 'moodQ6', 'moodQ7', 'moodQ8', 'moodQ9'];
+    const fullyAnswered = restIds.every(id => answers[id]);
+    if (!fullyAnswered) {
+      return { stage: 'phq2', score: phq2, max: 6 };
+    }
+
+    const item9 = val('moodQ9');
+    const total = phq2 + restIds.reduce((sum, id) => sum + val(id), 0);
+    let severity;
+    if (total <= 4) severity = "Minimal";
+    else if (total <= 9) severity = "Mild";
+    else if (total <= 14) severity = "Moderate";
+    else if (total <= 19) severity = "Moderately severe";
+    else severity = "Severe";
+
+    return { stage: 'phq9', score: total, max: 27, severity, safetyEndorsed: item9 > 0 };
+  }
+
+  // Neutral fact display for the summary page — reports the pregnancy-potential, LARC and
+  // pregnancy-intent answers as-is, for the clinician to review and interpret themselves,
+  // rather than the app recommending any course of action.
+  function computeReproductiveHealthSummary() {
+    const preg = answers.pregnancyScreen;
+    if (!preg) return null;
+    return {
+      pregnancyPotential: preg.text,
+      larc: answers.contraception ? answers.contraception.text : null,
+      intent: answers.pregnancyIntent ? answers.pregnancyIntent.text : null
     };
   }
 
@@ -968,6 +971,42 @@
           </div>
         </div>` : '';
 
+    // Neutral, non-directive facts for clinical review — these report screening results and
+    // answers as-is rather than the app recommending whether, where or what to discuss.
+    const moodSummary = computeMoodScoreSummary();
+    const moodSummaryHTML = moodSummary ? `
+      <div class="flag-card ${moodSummary.stage === 'phq9' && moodSummary.safetyEndorsed ? 'red' : 'info'}">
+        <strong class="flag-title">Mood Screen (${moodSummary.stage === 'phq9' ? 'PHQ-9' : 'PHQ-2'})</strong>
+        Score: ${moodSummary.score}/${moodSummary.max}${moodSummary.severity ? ` — ${moodSummary.severity}` : ''}.
+        ${moodSummary.stage === 'phq9' ? `Safety item (thoughts of self-harm): <strong>${moodSummary.safetyEndorsed ? 'Endorsed' : 'Not endorsed'}</strong>.` : ''}
+      </div>` : '';
+
+    const repro = computeReproductiveHealthSummary();
+    const reproResourceLinks = repro ? [
+        ...(repro.larc === 'No' || repro.larc === 'Not sure / prefer not to say' ? [CONTRACEPTION_LINK] : []),
+        ...(repro.intent === 'Yes' || repro.intent === 'Not sure' ? [PREGNANCY_PLANNING_LINK] : [])
+      ] : [];
+    const reproHTML = repro ? `
+      <div class="flag-card info">
+        <strong class="flag-title">Reproductive Health</strong>
+        Capable of becoming pregnant: ${repro.pregnancyPotential}.
+        ${repro.larc ? `<br>Using a long-acting reversible contraceptive (LARC): ${repro.larc}.` : ''}
+        ${repro.intent ? `<br>Planning a pregnancy in the next year: ${repro.intent}.` : ''}
+      </div>
+      ${reproResourceLinks.map(r => `
+        <a href="${r.url}" target="_blank" rel="noopener" class="resource-link">
+          <span class="rl-domain">${r.domain}</span>${r.label}
+        </a>
+      `).join('')}` : '';
+
+    const flaggedReviewHTML = (moodSummaryHTML || reproHTML) ? `
+      <div class="summary-section">
+        <h3 class="section-title">Flagged For Clinical Review</h3>
+        <p class="section-hint">Objective screening results and answers — for you to review and interpret; this app doesn't recommend what, if anything, to do about them.</p>
+        ${moodSummaryHTML}
+        ${reproHTML}
+      </div>` : '';
+
     let personalHTML, todayHTML, gpHTML, contextualResourcesHTML;
 
     if (uniqueFlags.length === 0) {
@@ -1019,6 +1058,7 @@
         <h2>Your Pre Consultation Summary</h2>
         <p class="description">Please show this screen to your clinician during today's appointment.</p>
         ${topConcernHTML}
+        ${flaggedReviewHTML}
 
         <div class="summary-section">
           <h3 class="section-title">For Discussion With Your Doctor Today<span class="badge today">Today</span></h3>
@@ -1089,6 +1129,24 @@
     const topConcern = answers.topConcern && answers.topConcern.value;
     if (topConcern) {
       text += 'TODAY\'S MAIN CONCERN\n- "' + topConcern + '"\n\n';
+    }
+
+    const moodSummary = computeMoodScoreSummary();
+    const repro = computeReproductiveHealthSummary();
+    if (moodSummary || repro) {
+      text += 'FLAGGED FOR CLINICAL REVIEW (objective results/answers only — not a recommendation)\n';
+      if (moodSummary) {
+        text += '- Mood Screen (' + (moodSummary.stage === 'phq9' ? 'PHQ-9' : 'PHQ-2') + '): score ' + moodSummary.score + '/' + moodSummary.max + (moodSummary.severity ? ' — ' + moodSummary.severity : '') + '.';
+        if (moodSummary.stage === 'phq9') text += ' Safety item (thoughts of self-harm): ' + (moodSummary.safetyEndorsed ? 'Endorsed' : 'Not endorsed') + '.';
+        text += '\n';
+      }
+      if (repro) {
+        text += '- Reproductive Health: capable of becoming pregnant — ' + repro.pregnancyPotential + '.';
+        if (repro.larc) text += ' Using a LARC — ' + repro.larc + '.';
+        if (repro.intent) text += ' Planning a pregnancy in the next year — ' + repro.intent + '.';
+        text += '\n';
+      }
+      text += '\n';
     }
 
     text += 'FOR DISCUSSION WITH MY DOCTOR TODAY\n';
