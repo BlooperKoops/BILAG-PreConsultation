@@ -492,6 +492,9 @@
   const ROS_LINK = { label: "Royal Osteoporosis Society — Steroids & Bone Health", url: "https://theros.org.uk/information-and-support/causes-and-risk-factors/medicines-that-increase-your-risk/steroids-glucocorticoids-and-bone-health/", domain: "Bone Health" };
   const CONTRACEPTION_LINK = { label: "NHS — Contraception Guide", url: "https://www.nhs.uk/contraception/", domain: "Medication Safety" };
   const PREGNANCY_PLANNING_LINK = { label: "NHS — Trying For A Baby", url: "https://www.nhs.uk/pregnancy/trying-for-a-baby/", domain: "Medication Safety" };
+  const ALCOHOL_SUPPORT_LINK = { label: "NHS — Alcohol Support", url: "https://www.nhs.uk/live-well/alcohol-advice/alcohol-support/", domain: "Alcohol" };
+  const ALCOHOL_UNITS_LINK = { label: "NHS — Calculating Alcohol Units", url: "https://www.nhs.uk/live-well/alcohol-advice/calculating-alcohol-units/", domain: "Alcohol" };
+  const EXERCISE_LINK = { label: "NHS — Physical Activity Guidelines For Adults", url: "https://www.nhs.uk/live-well/exercise/physical-activity-guidelines-for-adults-aged-19-to-64/", domain: "Physical Activity" };
 
   const GENERAL_RESOURCES = [
     { label: "NHS — Lupus Information", url: "https://www.nhs.uk/conditions/lupus/", domain: "General" },
@@ -612,10 +615,10 @@
     id: "pregnancyScreen", domain: "Medication Safety",
     question: "Is there any chance you could become pregnant?",
     options: [
-      { text: "No", flag: null },
+      { text: "No", flag: null, insertNext: [] }, // insertNext filled in below, once contraceptionStep exists
       { text: "Yes", flag: null, insertNext: [] }, // insertNext filled in below, once pregnancyIntentStep/contraceptionStep exist
       { text: "Not sure", flag: null, insertNext: [] },
-      { text: "Prefer not to say", flag: null }
+      { text: "Prefer not to say", flag: null, insertNext: [] }
     ]
   };
 
@@ -643,8 +646,12 @@
   };
 
   // Wire up pregnancyScreenStep's insertNext now that pregnancyIntentStep/contraceptionStep exist.
+  // Contraception is asked regardless of the answer here — including "No" — since LARC use is
+  // relevant to medication safety on its own and shouldn't be skipped based on this answer.
+  pregnancyScreenStep.options[0].insertNext = [contraceptionStep]; // "No"
   pregnancyScreenStep.options[1].insertNext = [pregnancyIntentStep, contraceptionStep]; // "Yes"
   pregnancyScreenStep.options[2].insertNext = [contraceptionStep]; // "Not sure"
+  pregnancyScreenStep.options[3].insertNext = [contraceptionStep]; // "Prefer not to say"
 
   // Currently pregnant/breastfeeding is asked first, since it's the single most urgent
   // medication-safety fact — more urgent than future potential or intent. Answering "No" (or
@@ -659,6 +666,75 @@
       { text: "Yes, pregnant", flag: null },
       { text: "Yes, breastfeeding", flag: null },
       { text: "Prefer not to say", flag: null, insertNext: [pregnancyScreenStep] }
+    ]
+  };
+
+  // Asked only when the patient says they drink alcohol at all — units-per-week banding follows
+  // the UK CMOs' low-risk guideline (no more than 14 units/week, spread over 3+ days). The hint
+  // explains what a unit is so the question is answerable without external lookup.
+  const alcoholUnitsStep = {
+    id: "alcoholUnits", domain: "Alcohol",
+    question: "On average, how many units of alcohol do you drink in a typical week?",
+    hint: "A unit is roughly half a pint of average-strength beer, a small (25ml) spirit measure, or half a standard (175ml) glass of wine. UK guidance is not to regularly drink more than 14 units a week, spread across 3 or more days with some drink-free days.",
+    options: [
+      { text: "0–14 units a week", flag: null },
+      { text: "15–35 units a week", flag: {
+          type: "yellow",
+          text: "Drinking above the UK low-risk guideline of 14 units a week.",
+          personalAction: "Try cutting down gradually — spread drinks across the week, build in several drink-free days, and try smaller measures or lower-strength drinks. Free NHS-endorsed tools like Drink Free Days can help you track units.",
+          personalCategory: "Alcohol",
+          clinicianBucket: "today",
+          clinicianAction: "Drinking above the 14 units/week low-risk guideline — consider brief alcohol intervention/advice and check for interactions or hepatotoxicity risk with current medication (e.g. methotrexate).",
+          resources: [ALCOHOL_SUPPORT_LINK, ALCOHOL_UNITS_LINK]
+      }},
+      { text: "More than 35 units a week", flag: {
+          type: "red",
+          text: "Drinking significantly above the UK low-risk guideline of 14 units a week.",
+          personalAction: "This is well above the low-risk guideline and worth talking to someone about today. Free, confidential alcohol support services can help you cut down or stop, at whatever pace works for you.",
+          personalCategory: "Alcohol",
+          clinicianBucket: "today",
+          clinicianAction: "Drinking significantly above guidance (>35 units/week) — assess for alcohol dependence, check for interactions/hepatotoxicity with current medication, and offer referral to alcohol support services.",
+          resources: [ALCOHOL_SUPPORT_LINK, ALCOHOL_UNITS_LINK]
+      }},
+      { text: "Not sure how many units", flag: {
+          type: "yellow",
+          text: "Not sure how many units of alcohol they drink in a typical week.",
+          personalAction: "A free online alcohol unit calculator can help you work out roughly how much you're drinking, based on what and how much you typically have.",
+          personalCategory: "Alcohol",
+          clinicianBucket: null,
+          clinicianAction: null,
+          resources: [ALCOHOL_UNITS_LINK]
+      }}
+    ]
+  };
+
+  // Single-question physical activity screen. Bands and guidance follow the WHO 2020 physical
+  // activity guidelines (150–300 min/week moderate, or 75–150 min/week vigorous intensity) —
+  // framed as "any activity is better than none" rather than an all-or-nothing target.
+  const exerciseStep = {
+    id: "exercise", domain: "Physical Activity",
+    question: "In a typical week, how many minutes of moderate or vigorous physical activity do you do? (e.g. brisk walking, cycling, swimming)",
+    hint: "WHO guidance recommends adults do at least 150–300 minutes of moderate-intensity activity a week (or 75–150 minutes of vigorous activity), plus muscle-strengthening activity on 2 or more days — but any activity is better than none, so it's fine to build up gradually.",
+    options: [
+      { text: "150 minutes or more", flag: null },
+      { text: "Some, but less than 150 minutes a week", flag: {
+          type: "yellow",
+          text: "Doing some physical activity, but below the WHO-recommended 150 minutes a week.",
+          personalAction: "Building up gradually towards 150 minutes a week of moderate activity (e.g. brisk walking, cycling, swimming), even in short bursts, can help with fatigue, joint stiffness, mood, and bone and heart health in lupus. Any increase helps, even below the full target.",
+          personalCategory: "Diet & Exercise",
+          clinicianBucket: null,
+          clinicianAction: null,
+          resources: [EXERCISE_LINK]
+      }},
+      { text: "Little or no physical activity", flag: {
+          type: "red",
+          text: "Little or no regular physical activity.",
+          personalAction: "Even light activity — short walks, gentle stretching, or chair-based exercise — is a good place to start and can be built up gradually. It's worth asking your care team about activity that's safe for your joints and current disease activity.",
+          personalCategory: "Diet & Exercise",
+          clinicianBucket: null,
+          clinicianAction: null,
+          resources: [EXERCISE_LINK]
+      }}
     ]
   };
 
@@ -838,6 +914,15 @@
         }}
       ]
     },
+    {
+      id: "alcoholScreen", domain: "Alcohol",
+      question: "Do you drink alcohol?",
+      options: [
+        { text: "No", flag: null },
+        { text: "Yes", flag: null, insertNext: [alcoholUnitsStep] }
+      ]
+    },
+    exerciseStep,
     moodQ1,
     moodQ2
   ];
