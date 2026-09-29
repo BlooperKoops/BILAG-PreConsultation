@@ -404,29 +404,6 @@
     border-radius: 10px;
     padding: clamp(14px, 1.6vw, 18px);
   }
-  .email-box label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
-  .email-row { display: flex; gap: 8px; }
-  .email-row input[type="email"] {
-    flex: 1;
-    padding: 11px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
-    font-size: 0.9rem;
-  }
-  .email-row button {
-    padding: 11px 14px;
-    border-radius: 8px;
-    border: none;
-    background: var(--accent);
-    color: var(--accent-contrast);
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .email-row button:hover { background: var(--accent-hover); }
   .email-hint { font-size: 0.75rem; color: var(--text-muted); margin: 8px 0 0; line-height: 1.4; }
   .email-status { font-size: 0.8rem; margin-top: 8px; color: var(--flag-green-text); }
 
@@ -456,6 +433,19 @@
     cursor: pointer;
   }
   .image-btn:hover { background: var(--accent-hover); }
+
+  .page-btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 8px;
+    border: 2px solid var(--accent);
+    background: transparent;
+    color: var(--accent-hover);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .page-btn:hover { background: var(--surface-2); }
 
   .img-overlay {
     position: fixed;
@@ -1278,7 +1268,12 @@
     }
   }
 
-  function renderSummary() {
+  // Builds the actual summary content (everything inside the ".card" on the results screen,
+  // except the "Keep A Copy" box) as an HTML string. Shared by the live renderSummary() and by
+  // buildSummaryPageDocument() below, so the saved standalone page is exactly what's on screen —
+  // real <a> links and real <input type="checkbox"> tick boxes, both still fully live/clickable
+  // once reopened later, since neither needs any JavaScript to work.
+  function buildSummaryCardHTML() {
     const uniqueFlags = computeFlags();
 
     const todayItems = uniqueFlags.filter(f => f.clinicianBucket === 'today');
@@ -1374,8 +1369,7 @@
       </a>
     `).join('');
 
-    contentEl.innerHTML = `
-      <div class="card">
+    return `
         <span class="step-tag">Checklist Complete</span>
         <h2>Your Pre Consultation Summary</h2>
         <p class="description">Please show this screen to your clinician during today's appointment.</p>
@@ -1408,6 +1402,13 @@
           <h3 class="section-title">General &amp; Community Resources</h3>
           ${generalResourcesHTML}
         </div>
+    `;
+  }
+
+  function renderSummary() {
+    contentEl.innerHTML = `
+      <div class="card">
+        ${buildSummaryCardHTML()}
 
         <div class="summary-section email-box">
           <h3 class="section-title" style="margin-bottom:10px;">Keep A Copy Of This Plan</h3>
@@ -1415,13 +1416,8 @@
           <p class="email-hint" style="margin:0 0 10px;">A visual summary card you can save to your phone — show it at today's appointment, or come back to it afterwards.</p>
           <button class="image-btn" id="image-btn" onclick="showSummaryImage()">View &amp; Save Visual Summary</button>
 
-          <label for="patient-email" style="display:block;margin-top:16px;">Or email the text version to yourself</label>
-          <div class="email-row">
-            <input type="email" id="patient-email" placeholder="you@example.com" inputmode="email">
-            <button onclick="emailActionPlan()">Email Me</button>
-          </div>
-          <p class="email-hint">This opens your own email app with the plan ready to send — nothing is sent from here or stored online.</p>
-          <p class="email-status" id="email-status" hidden></p>
+          <p class="email-hint" style="margin:14px 0 8px;">Prefer to keep the links and tick boxes usable? Save this as a webpage you can reopen any time in your phone's browser.</p>
+          <button class="page-btn" id="page-btn" onclick="saveSummaryPage()">Save Summary As Webpage</button>
 
           <button class="save-btn" id="save-btn" onclick="saveActionPlan()" hidden>Save Text To My Phone</button>
           <p class="email-status" id="save-status" hidden></p>
@@ -1441,6 +1437,73 @@
     footerEl.innerHTML = `
       <button class="btn btn-secondary" onclick="location.reload()">Restart</button>
     `;
+  }
+
+  // Builds a complete, standalone HTML document that reproduces this summary exactly as it
+  // looks right now (same theme/contrast/text-size, same header/logo) — with real <a> links and
+  // real tick-box <input> elements, so both stay fully usable after saving, with no JavaScript
+  // and no server involved. Re-opening the saved file later works offline.
+  function buildSummaryPageDocument() {
+    const styleBlocks = Array.from(document.querySelectorAll('style')).map(s => s.outerHTML).join('\n');
+    const theme = document.documentElement.getAttribute('data-theme') || '';
+    const contrast = document.documentElement.getAttribute('data-contrast') || '';
+    const htmlClass = document.documentElement.className || '';
+    const headerHTML = document.querySelector('header.app-header') ? document.querySelector('header.app-header').innerHTML : '';
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    const cardHTML = buildSummaryCardHTML();
+
+    return `<!DOCTYPE html>
+<html lang="en"${theme ? ` data-theme="${theme}"` : ''}${contrast ? ` data-contrast="${contrast}"` : ''}${htmlClass ? ` class="${htmlClass}"` : ''}>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>My SLE Pre-Consultation Summary — ${dateStr}</title>
+${styleBlocks}
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">${headerHTML}</header>
+    <main style="padding: clamp(22px, 3vw, 36px) clamp(18px, 5vw, 48px);">
+      <div class="card">
+        ${cardHTML}
+        <p class="section-hint" style="margin-top:18px;">Saved on ${dateStr}. Links and tick boxes on this page stay usable — nothing here is sent or stored online. Re-open this file any time, even without a signal.</p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>`;
+  }
+
+  async function saveSummaryPage() {
+    const btn = document.getElementById('page-btn');
+    const html = buildSummaryPageDocument();
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const filename = `SLE-Summary-${dateStamp}.html`;
+
+    if (window.claude && window.claude.use) {
+      try {
+        const downloads = await window.claude.use('downloads').catch(() => null);
+        if (downloads) {
+          await downloads.save({ filename, data: html });
+          if (btn) { btn.textContent = 'Saved'; setTimeout(() => { btn.textContent = 'Save Summary As Webpage'; }, 1500); }
+          return;
+        }
+      } catch (err) {
+        if (err && err.code === 'declined') return; // they said no — don't fall back to a second prompt
+      }
+    }
+
+    // Fallback for the plain exported HTML file (no window.claude) — trigger a normal browser download.
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    if (btn) { btn.textContent = 'Saved'; setTimeout(() => { btn.textContent = 'Save Summary As Webpage'; }, 1500); }
   }
 
   // ---------------------------------------------------------------------------------------
@@ -1913,27 +1976,6 @@
     return text;
   }
 
-  function emailActionPlan() {
-    const emailInput = document.getElementById('patient-email');
-    const status = document.getElementById('email-status');
-    const email = (emailInput.value || '').trim();
-    if (!email || !email.includes('@') || !email.includes('.')) {
-      status.hidden = false;
-      status.style.color = 'var(--flag-red-text)';
-      status.textContent = 'Please enter a valid email address.';
-      return;
-    }
-
-    const body = buildActionPlanText();
-    const subject = 'My SLE Pre-Consultation Action Plan';
-    const mailto = 'mailto:' + encodeURIComponent(email) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-
-    status.hidden = false;
-    status.style.color = 'var(--flag-green-text)';
-    status.textContent = 'Opening your email app…';
-    window.location.href = mailto;
-  }
-
   async function saveActionPlan() {
     const status = document.getElementById('save-status');
     status.hidden = false;
@@ -1943,7 +1985,7 @@
     const downloads = window.claude && window.claude.use ? await window.claude.use("downloads").catch(() => null) : null;
     if (!downloads) {
       status.style.color = 'var(--flag-red-text)';
-      status.textContent = "Saving isn't available here — try Email Me instead.";
+      status.textContent = "Saving isn't available here — try Save Summary As Webpage instead.";
       return;
     }
 
@@ -1960,7 +2002,7 @@
       } else if (err && err.code === 'rate_limited') {
         status.textContent = 'Please wait a moment and try again.';
       } else {
-        status.textContent = "Couldn't save here — try Email Me instead.";
+        status.textContent = "Couldn't save here — try Save Summary As Webpage instead.";
       }
     }
   }
