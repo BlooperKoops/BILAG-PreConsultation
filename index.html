@@ -444,6 +444,85 @@
   }
   .save-btn:hover { background: var(--surface-2); }
 
+  .image-btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .image-btn:hover { background: var(--accent-hover); }
+
+  .img-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 1000;
+  }
+  .img-modal {
+    background: var(--surface);
+    border-radius: 14px;
+    max-width: min(480px, 100%);
+    width: 100%;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+  }
+  .img-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+    color: var(--header-bg-2);
+  }
+  :root[data-theme="dark"] .img-modal-header { color: var(--accent-hover); }
+  .img-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  .img-modal-body {
+    overflow-y: auto;
+    padding: 14px;
+    background: var(--surface-2);
+    flex: 1;
+  }
+  .img-modal-img {
+    display: block;
+    width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  }
+  .img-modal-hint {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 0;
+    padding: 10px 18px 0;
+    text-align: center;
+  }
+  .img-modal-actions {
+    display: flex;
+    gap: 10px;
+    padding: 14px 18px 18px;
+  }
+  .img-modal-actions .btn { flex: 1; }
+
   .text-input {
     width: 100%;
     padding: 12px 14px;
@@ -762,7 +841,7 @@
         { text: "3–5 days", insertNext: [medicationReasonStep], flag: {
             type: "red",
             text: "Taking medication regularly has been difficult over the last two weeks.",
-            personalAction: "It's worth telling your care team today what's been making it hard to take your medication regularly — they're there to help, not to judge.",
+            personalAction: "It's worth telling your care team today what's been making it hard to take your medication regularly.",
             personalCategory: "Medication",
             clinicianBucket: "today",
             clinicianAction: "Taking medication regularly has been difficult recently — worth exploring what's getting in the way and whether the flare risk needs addressing, and considering whether simplifying the regimen or specialist nurse input would help.",
@@ -1333,7 +1412,10 @@
         <div class="summary-section email-box">
           <h3 class="section-title" style="margin-bottom:10px;">Keep A Copy Of This Plan</h3>
 
-          <label for="patient-email">Email it to yourself</label>
+          <p class="email-hint" style="margin:0 0 10px;">A visual summary card you can save to your phone — show it at today's appointment, or come back to it afterwards.</p>
+          <button class="image-btn" id="image-btn" onclick="showSummaryImage()">View &amp; Save Visual Summary</button>
+
+          <label for="patient-email" style="display:block;margin-top:16px;">Or email the text version to yourself</label>
           <div class="email-row">
             <input type="email" id="patient-email" placeholder="you@example.com" inputmode="email">
             <button onclick="emailActionPlan()">Email Me</button>
@@ -1341,7 +1423,7 @@
           <p class="email-hint">This opens your own email app with the plan ready to send — nothing is sent from here or stored online.</p>
           <p class="email-status" id="email-status" hidden></p>
 
-          <button class="save-btn" id="save-btn" onclick="saveActionPlan()" hidden>Save To My Phone</button>
+          <button class="save-btn" id="save-btn" onclick="saveActionPlan()" hidden>Save Text To My Phone</button>
           <p class="email-status" id="save-status" hidden></p>
         </div>
       </div>
@@ -1359,6 +1441,416 @@
     footerEl.innerHTML = `
       <button class="btn btn-secondary" onclick="location.reload()">Restart</button>
     `;
+  }
+
+  // ---------------------------------------------------------------------------------------
+  // Visual summary image ("infographic") — a single self-contained PNG the patient can save
+  // to their phone's photo library, so it's usable both live in the appointment (just open the
+  // photo) and afterwards from home, with no need to reopen this page or have a signal. Colours
+  // are read from the live CSS custom properties, so the image matches whatever theme/contrast
+  // mode is currently active. Built as plain <canvas> drawing (no external library) so it works
+  // identically whether this page is a published Claude artifact or the plain exported HTML file.
+
+  function cssVar(name, fallback) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+
+  function wrapCanvasText(ctx, text, maxWidth) {
+    const words = String(text).split(/\s+/);
+    const lines = [];
+    let line = '';
+    for (const word of words) {
+      const test = line ? line + ' ' + word : word;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  function getSummaryImageData() {
+    const uniqueFlags = computeFlags();
+    const todayItems = uniqueFlags.filter(f => f.clinicianBucket === 'today');
+    const gpItems = uniqueFlags.filter(f => f.clinicianBucket === 'gp');
+    const topConcern = answers.topConcern && answers.topConcern.value;
+    const moodSummary = computeMoodScoreSummary();
+    const repro = computeReproductiveHealthSummary();
+    const reproResourceLinks = repro ? [
+        ...(repro.larc === 'No' || repro.larc === 'Not sure / prefer not to say' ? [CONTRACEPTION_LINK] : []),
+        ...(repro.intent === 'Yes' || repro.intent === 'Not sure' ? [PREGNANCY_PLANNING_LINK] : [])
+      ] : [];
+
+    const allResources = [];
+    uniqueFlags.forEach(f => (f.resources || []).forEach(r => allResources.push(r)));
+    reproResourceLinks.forEach(r => allResources.push(r));
+    GENERAL_RESOURCES.forEach(r => allResources.push(r));
+    const uniqueResources = Array.from(new Set(allResources.map(r => JSON.stringify(r)))).map(r => JSON.parse(r));
+
+    const dateStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    return { uniqueFlags, todayItems, gpItems, topConcern, moodSummary, repro, uniqueResources, dateStr };
+  }
+
+  // Draws the whole card into `ctx` (already scaled for device resolution) and returns the
+  // final logical height used, so the caller can size the real canvas exactly on a second pass.
+  function drawInfographic(ctx, data, W, PAD, fillHeight) {
+    const CW = W - PAD * 2;
+    const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+    const setFont = (px, weight) => { ctx.font = `${weight || '400'} ${px}px ${FONT}`; };
+    const roundRect = (x, yy, w, h, r) => {
+      const rr = Math.min(r, h / 2, w / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + rr, yy);
+      ctx.arcTo(x + w, yy, x + w, yy + h, rr);
+      ctx.arcTo(x + w, yy + h, x, yy + h, rr);
+      ctx.arcTo(x, yy + h, x, yy, rr);
+      ctx.arcTo(x, yy, x + w, yy, rr);
+      ctx.closePath();
+    };
+
+    const c = {
+      headerBg: cssVar('--header-bg', '#4A1160'),
+      headerBg2: cssVar('--header-bg-2', '#5F1473'),
+      brandPurple: cssVar('--brand-purple', '#9C1CBD'),
+      accent: cssVar('--accent', '#9C1CBD'),
+      accentHover: cssVar('--accent-hover', '#7A1894'),
+      accentContrast: cssVar('--accent-contrast', '#FFFFFF'),
+      bg: cssVar('--bg', '#FAF7FC'),
+      surface2: cssVar('--surface-2', '#F4E8FA'),
+      text: cssVar('--text', '#2A2233'),
+      textMuted: cssVar('--text-muted', '#786888'),
+      border: cssVar('--border', '#E8DCF0'),
+      redBg: cssVar('--flag-red-bg', '#FFF3F3'), redBorder: cssVar('--flag-red-border', '#F3B7B7'), redText: cssVar('--flag-red-text', '#8C2A2A'),
+      yellowBg: cssVar('--flag-yellow-bg', '#FFF9EC'), yellowBorder: cssVar('--flag-yellow-border', '#F0D49A'), yellowText: cssVar('--flag-yellow-text', '#7A4E12'),
+      todayBadgeBg: cssVar('--today-badge-bg', '#F4E8FA'), todayBadgeText: cssVar('--today-badge-text', '#7A1894'),
+      gpBadgeBg: cssVar('--gp-badge-bg', '#E9F1FC'), gpBadgeText: cssVar('--gp-badge-text', '#205088')
+    };
+
+    let y = 0;
+
+    if (fillHeight) {
+      ctx.fillStyle = c.bg;
+      ctx.fillRect(0, 0, W, fillHeight);
+    }
+
+    // Header band
+    const headerH = 214;
+    const grad = ctx.createLinearGradient(0, 0, W, headerH);
+    grad.addColorStop(0, c.headerBg2);
+    grad.addColorStop(1, c.headerBg);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, headerH);
+    ctx.fillStyle = c.brandPurple;
+    ctx.fillRect(0, headerH - 6, W, 6);
+
+    const logoImg = document.querySelector('.logo');
+    let titleY = 118;
+    if (logoImg && logoImg.complete && logoImg.naturalWidth) {
+      const logoH = 52;
+      const logoW = logoH * (logoImg.naturalWidth / logoImg.naturalHeight);
+      try { ctx.drawImage(logoImg, (W - logoW) / 2, 32, logoW, logoH); } catch (e) {}
+      titleY = 128;
+    }
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFFFFF';
+    setFont(32, '700');
+    ctx.fillText('My SLE Pre-Consultation Summary', W / 2, titleY);
+    setFont(19, '400');
+    ctx.fillStyle = '#E9D9F2';
+    ctx.fillText(data.dateStr, W / 2, titleY + 30);
+    ctx.textAlign = 'left';
+
+    y = headerH + 36;
+
+    const sectionTitle = (label, badgeText, badgeBg, badgeColor) => {
+      setFont(22, '700');
+      ctx.fillStyle = c.text;
+      ctx.fillText(label, PAD, y + 18);
+      const labelWidth = ctx.measureText(label).width; // measured while the label's own font is set
+      if (badgeText) {
+        setFont(14, '700');
+        const bw = ctx.measureText(badgeText).width + 20;
+        const bx = PAD + labelWidth + 14;
+        ctx.fillStyle = badgeBg;
+        roundRect(bx, y - 2, bw, 26, 13);
+        ctx.fill();
+        ctx.fillStyle = badgeColor;
+        ctx.textAlign = 'left';
+        ctx.fillText(badgeText, bx + 10, y + 16);
+      }
+      y += 40;
+    };
+
+    const sectionHint = (text) => {
+      setFont(16, '400');
+      ctx.fillStyle = c.textMuted;
+      const lines = wrapCanvasText(ctx, text, CW);
+      lines.forEach((line, i) => ctx.fillText(line, PAD, y + i * 22));
+      y += lines.length * 22 + 14;
+    };
+
+    // Flag-style card (used for today/gp/flagged-review items)
+    const drawFlagCard = (domainLabel, bodyText, bgColor, barColor, labelColor) => {
+      const innerPad = 20;
+      setFont(24, '400');
+      const bodyLines = wrapCanvasText(ctx, bodyText, CW - innerPad * 2 - 6);
+      const lineH = 32;
+      const boxH = innerPad * 2 + 24 + bodyLines.length * lineH;
+
+      ctx.fillStyle = bgColor;
+      roundRect(PAD, y, CW, boxH, 12);
+      ctx.fill();
+      ctx.fillStyle = barColor;
+      roundRect(PAD, y, 6, boxH, 3);
+      ctx.fill();
+
+      setFont(15, '700');
+      ctx.fillStyle = labelColor;
+      ctx.fillText(domainLabel.toUpperCase(), PAD + innerPad + 6, y + innerPad + 10);
+
+      setFont(24, '400');
+      ctx.fillStyle = c.text;
+      bodyLines.forEach((line, i) => ctx.fillText(line, PAD + innerPad + 6, y + innerPad + 40 + i * lineH));
+
+      y += boxH + 14;
+    };
+
+    const drawChecklistItem = (domainLabel, bodyText) => {
+      const innerPad = 20;
+      const boxX = PAD + 40;
+      const boxW = CW - 40;
+      setFont(23, '400');
+      const bodyLines = wrapCanvasText(ctx, bodyText, boxW - innerPad * 2 - 6);
+      const lineH = 31;
+      const boxH = innerPad * 2 + 22 + bodyLines.length * lineH;
+
+      ctx.fillStyle = c.surface2;
+      roundRect(boxX, y, boxW, boxH, 12);
+      ctx.fill();
+
+      // empty checkbox
+      ctx.strokeStyle = c.accent;
+      ctx.lineWidth = 2.4;
+      roundRect(PAD, y + innerPad + 2, 26, 26, 6);
+      ctx.stroke();
+
+      setFont(14, '700');
+      ctx.fillStyle = c.accentHover;
+      ctx.fillText(domainLabel.toUpperCase(), boxX + innerPad, y + innerPad + 8);
+
+      setFont(23, '400');
+      ctx.fillStyle = c.text;
+      bodyLines.forEach((line, i) => ctx.fillText(line, boxX + innerPad, y + innerPad + 36 + i * lineH));
+
+      y += boxH + 12;
+    };
+
+    const drawResourceLine = (label, url) => {
+      setFont(20, '600');
+      ctx.fillStyle = c.accentHover;
+      const labelLines = wrapCanvasText(ctx, label, CW);
+      labelLines.forEach((line, i) => ctx.fillText(line, PAD, y + i * 26));
+      y += labelLines.length * 26;
+      setFont(15, '400');
+      ctx.fillStyle = c.textMuted;
+      ctx.fillText(url, PAD, y + 18);
+      y += 34;
+    };
+
+    // Today's Main Concern
+    if (data.topConcern) {
+      setFont(15, '700');
+      ctx.fillStyle = c.accentHover;
+      ctx.fillText("TODAY'S MAIN CONCERN", PAD, y);
+      y += 26;
+      setFont(23, '400');
+      const lines = wrapCanvasText(ctx, '“' + data.topConcern + '”', CW - 48);
+      const boxH = lines.length * 32 + 40;
+      ctx.fillStyle = c.surface2;
+      roundRect(PAD, y, CW, boxH, 14);
+      ctx.fill();
+      ctx.fillStyle = c.text;
+      lines.forEach((line, i) => ctx.fillText(line, PAD + 24, y + 34 + i * 32));
+      y += boxH + 34;
+    }
+
+    // Flagged For Clinical Review (neutral facts)
+    if (data.moodSummary || (data.repro && data.repro.current)) {
+      sectionTitle('Flagged For Clinical Review');
+      sectionHint("Objective screening results and answers — for review; not a recommendation.");
+
+      if (data.moodSummary) {
+        const ms = data.moodSummary;
+        const label = ms.stage === 'phq9' ? 'Mood Screen (PHQ-9)' : 'Mood Screen (PHQ-2)';
+        let text = `Score: ${ms.score}/${ms.max}${ms.severity ? ' — ' + ms.severity : ''}.`;
+        if (ms.stage === 'phq9') text += ` Safety item (thoughts of self-harm): ${ms.safetyEndorsed ? 'Endorsed' : 'Not endorsed'}.`;
+        const urgent = ms.stage === 'phq9' && ms.safetyEndorsed;
+        drawFlagCard(label, text, urgent ? c.redBg : c.gpBadgeBg, urgent ? c.redBorder : c.gpBadgeText, urgent ? c.redText : c.gpBadgeText);
+      }
+
+      if (data.repro && data.repro.current) {
+        const r = data.repro;
+        let text = `Currently pregnant or breastfeeding: ${r.current}.`;
+        if (r.pregnancyPotential) text += ` Capable of becoming pregnant: ${r.pregnancyPotential}.`;
+        if (r.larc) text += ` Using a LARC: ${r.larc}.`;
+        if (r.intent) text += ` Planning a pregnancy in the next year: ${r.intent}.`;
+        drawFlagCard('Reproductive Health', text, r.currentlyPregnantOrBreastfeeding ? c.redBg : c.gpBadgeBg, r.currentlyPregnantOrBreastfeeding ? c.redBorder : c.gpBadgeText, r.currentlyPregnantOrBreastfeeding ? c.redText : c.gpBadgeText);
+      }
+      y += 22;
+    }
+
+    // For Discussion With Your Doctor Today
+    sectionTitle('For Discussion With Your Doctor Today', 'TODAY', c.todayBadgeBg, c.todayBadgeText);
+    if (data.todayItems.length) {
+      data.todayItems.forEach(f => {
+        const isRed = f.type === 'red';
+        drawFlagCard(f.domain, f.clinicianAction, isRed ? c.redBg : c.yellowBg, isRed ? c.redBorder : c.yellowBorder, isRed ? c.redText : c.yellowText);
+      });
+    } else {
+      sectionHint('Nothing flagged for today’s appointment.');
+    }
+    y += 14;
+
+    // For Discussion With Your GP
+    sectionTitle('For Discussion With Your GP', 'GP', c.gpBadgeBg, c.gpBadgeText);
+    if (data.gpItems.length) {
+      data.gpItems.forEach(f => {
+        const isRed = f.type === 'red';
+        drawFlagCard(f.domain, f.clinicianAction, isRed ? c.redBg : c.yellowBg, isRed ? c.redBorder : c.yellowBorder, isRed ? c.redText : c.yellowText);
+      });
+    } else {
+      sectionHint('Nothing flagged for your GP.');
+    }
+    y += 14;
+
+    // Personal Action Plan
+    sectionTitle('Personal Action Plan');
+    sectionHint('Things you can do yourself.');
+    if (data.uniqueFlags.length === 0) {
+      sectionHint('Your current routine looks on track. Let the doctor know if anything changes.');
+    } else {
+      data.uniqueFlags.forEach(f => drawChecklistItem(f.personalCategory || f.domain, f.personalAction));
+    }
+    y += 14;
+
+    // Resources
+    if (data.uniqueResources.length) {
+      sectionTitle('Resources & Further Support');
+      data.uniqueResources.forEach(r => drawResourceLine(r.label, r.url));
+      y += 10;
+    }
+
+    // Footer
+    y += 20;
+    ctx.strokeStyle = c.border;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD, y);
+    ctx.lineTo(W - PAD, y);
+    ctx.stroke();
+    y += 26;
+    setFont(15, '400');
+    ctx.fillStyle = c.textMuted;
+    ctx.textAlign = 'center';
+    const footerLines = wrapCanvasText(ctx, 'Generated by the patient from their own answers — a personal summary, not a diagnosis. Nothing here is stored online.', CW);
+    footerLines.forEach((line, i) => ctx.fillText(line, W / 2, y + i * 20));
+    y += footerLines.length * 20 + 30;
+    ctx.textAlign = 'left';
+
+    return y;
+  }
+
+  // Builds the final canvas in two passes: a throwaway "measure" pass on a generously tall
+  // scratch canvas to learn the actual content height, then a real pass on a canvas sized to
+  // exactly that height, so there's no wasted blank space and nothing gets cut off.
+  function buildSummaryCanvas() {
+    const data = getSummaryImageData();
+    const SCALE = 2;
+    const W = 1080;
+    const PAD = 48;
+
+    const scratch = document.createElement('canvas');
+    scratch.width = W * SCALE;
+    scratch.height = 8000 * SCALE;
+    const sctx = scratch.getContext('2d');
+    sctx.scale(SCALE, SCALE);
+    const finalHeight = Math.ceil(drawInfographic(sctx, data, W, PAD, false));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W * SCALE;
+    canvas.height = finalHeight * SCALE;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(SCALE, SCALE);
+    drawInfographic(ctx, data, W, PAD, finalHeight);
+
+    return canvas;
+  }
+
+  function showSummaryImage() {
+    const canvas = buildSummaryCanvas();
+    const dataUrl = canvas.toDataURL('image/png');
+
+    const overlay = document.createElement('div');
+    overlay.className = 'img-overlay';
+    overlay.innerHTML = `
+      <div class="img-modal">
+        <div class="img-modal-header">
+          <span>Your Visual Summary</span>
+          <button type="button" class="img-close-btn" aria-label="Close">&times;</button>
+        </div>
+        <div class="img-modal-body">
+          <img src="${dataUrl}" alt="Pre-consultation visual summary" class="img-modal-img">
+        </div>
+        <p class="img-modal-hint">Tip: press and hold the image to save it to your Photos, or use the button below.</p>
+        <div class="img-modal-actions">
+          <button type="button" class="btn btn-secondary" id="img-close-btn-2">Close</button>
+          <button type="button" class="btn btn-primary" id="img-save-btn">Save Image</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const closeOverlay = () => overlay.remove();
+    overlay.querySelector('.img-close-btn').onclick = closeOverlay;
+    overlay.querySelector('#img-close-btn-2').onclick = closeOverlay;
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+
+    overlay.querySelector('#img-save-btn').onclick = async () => {
+      const saveBtn = overlay.querySelector('#img-save-btn');
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      const filename = `SLE-Summary-${dateStamp}.png`;
+
+      if (window.claude && window.claude.use) {
+        try {
+          const downloads = await window.claude.use('downloads').catch(() => null);
+          if (downloads) {
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            await downloads.save({ filename, data: blob });
+            saveBtn.textContent = 'Saved';
+            setTimeout(closeOverlay, 900);
+            return;
+          }
+        } catch (err) {
+          if (err && err.code === 'declined') return; // they said no — don't nag with a fallback prompt too
+        }
+      }
+
+      // Fallback for the plain exported HTML file (no window.claude) — trigger a normal browser download.
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      saveBtn.textContent = 'Saved';
+      setTimeout(() => { saveBtn.textContent = 'Save Image'; }, 1500);
+    };
   }
 
   function buildActionPlanText() {
