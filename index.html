@@ -336,50 +336,57 @@
 
   .patient-action {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     align-items: flex-start;
     background: var(--surface-2);
-    border-radius: 8px;
+    border-radius: 10px;
+    border-left: 4px solid var(--border);
     padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.6vw, 16px);
     margin-bottom: 8px;
     font-size: clamp(0.87rem, 0.83rem + 0.15vw, 0.98rem);
     line-height: 1.45;
     color: var(--text);
   }
-  .patient-action input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--accent); }
+  .patient-action input[type="checkbox"] { margin-top: 10px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--accent); }
   .patient-action .cat-label { display: block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.3px; color: var(--accent-hover); font-weight: 700; margin-bottom: 2px; }
-
-  .patient-action-item { margin-bottom: 8px; }
-  .patient-action-item .patient-action { margin-bottom: 6px; }
-  .lupus-ask-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-left: clamp(22px, 3vw, 30px);
-    padding: 4px 11px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--surface);
-    color: var(--accent-hover);
-    text-decoration: none;
-    font-size: 0.76rem;
-    font-weight: 600;
-  }
-  .lupus-ask-link:hover { border-color: var(--accent); }
-  :root[data-contrast="high"] .lupus-ask-link { border-width: 2px; text-decoration: underline; }
 
   .doctor-item {
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-left: 4px solid var(--border);
+    border-radius: 10px;
     padding: clamp(10px, 1.2vw, 14px) clamp(12px, 1.6vw, 16px);
     margin-bottom: 8px;
     display: flex;
-    gap: 8px;
+    gap: 10px;
     align-items: flex-start;
   }
-  .doctor-item input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--accent); }
+  .doctor-item input[type="checkbox"] { margin-top: 10px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--accent); }
   .doctor-item .domain-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.3px; color: var(--accent-hover); font-weight: 700; display: block; margin-bottom: 2px; }
   .doctor-item .doctor-text { font-size: clamp(0.87rem, 0.83rem + 0.15vw, 0.98rem); line-height: 1.45; color: var(--text); }
+  .item-content { flex: 1; min-width: 0; }
+
+  .item-icon {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    margin-top: 2px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--accent-hover);
+  }
+  .item-icon-svg { width: 18px; height: 18px; }
+
+  .flag-red.patient-action, .flag-red.doctor-item { border-left-color: var(--flag-red-border); }
+  .flag-red .item-icon { background: var(--flag-red-bg); border-color: var(--flag-red-border); color: var(--flag-red-text); }
+  .flag-yellow.patient-action, .flag-yellow.doctor-item { border-left-color: var(--flag-yellow-border); }
+  .flag-yellow .item-icon { background: var(--flag-yellow-bg); border-color: var(--flag-yellow-border); color: var(--flag-yellow-text); }
+  .flag-green.patient-action { border-left-color: var(--flag-green-border); }
+  .flag-green .item-icon { background: var(--flag-green-bg); border-color: var(--flag-green-border); color: var(--flag-green-text); }
+  :root[data-contrast="high"] .item-icon { border-width: 2px; }
 
   .badge {
     display: inline-block;
@@ -585,14 +592,9 @@
   const ALCOHOL_UNITS_LINK = { label: "NHS — Calculating Alcohol Units", url: "https://www.nhs.uk/live-well/alcohol-advice/calculating-alcohol-units/", domain: "Alcohol" };
   const EXERCISE_LINK = { label: "NHS — Physical Activity Guidelines For Adults", url: "https://www.nhs.uk/live-well/exercise/physical-activity-guidelines-for-adults-aged-19-to-64/", domain: "Physical Activity" };
 
-  // LupusGPT doesn't offer an API, so prompts can't be sent to it automatically — instead each
-  // flagged item below carries a ready-made question (lupusPrompt) that gets copied to the
-  // clipboard and LupusGPT opened in a new tab, ready for the patient to paste it in.
-  const LUPUSGPT_URL = "https://lupusgpt.org/";
-
   const GENERAL_RESOURCES = [
     { label: "NHS — Lupus Information", url: "https://www.nhs.uk/conditions/lupus/", domain: "General" },
-    { label: "LupusGPT — AI Answers Trained on Lupus Research", url: LUPUSGPT_URL, domain: "General" },
+    { label: "LupusGPT — AI Answers Trained on Lupus Research", url: "https://lupusgpt.org/", domain: "General" },
     { label: "Lupus Europe", url: "https://www.lupus-europe.org/", domain: "General" },
     { label: "Versus Arthritis — Lupus (SLE)", url: "https://versusarthritis.org/about-arthritis/conditions/lupus-sle/", domain: "General" }
   ];
@@ -608,7 +610,6 @@
           text: "Not currently taking calcium/vitamin D alongside steroid treatment.",
           personalAction: "Ask your pharmacist or GP whether a calcium and vitamin D supplement would be right for you while taking steroids.",
           personalCategory: "Bone Health",
-          lupusPrompt: "I have lupus and take steroids, but I'm not currently taking a calcium and vitamin D supplement. Can you explain why this is often recommended and what I should know before I ask my doctor?",
           clinicianBucket: "today",
           clinicianAction: "Not currently on calcium/vitamin D despite steroid use — consider starting per glucocorticoid-induced osteoporosis guidance.",
           resources: [ROS_LINK]
@@ -625,7 +626,6 @@
           text: "Not currently on a bisphosphonate (bone-protecting medication).",
           personalAction: "This is worth checking with your doctor — whether a bisphosphonate is right for you depends on your individual bone health risk.",
           personalCategory: "Bone Health",
-          lupusPrompt: "I have lupus, take steroids, and I'm not currently on a bisphosphonate (bone-protecting medication). Can you explain what bisphosphonates do and when they're usually considered?",
           clinicianBucket: "today",
           clinicianAction: "Not on a bisphosphonate — review fracture risk (e.g. FRAX/NOGG) and consider bone-protective therapy if indicated.",
           resources: [ROS_LINK]
@@ -642,7 +642,6 @@
           text: "Bone density (DXA) scan was more than 3 years ago.",
           personalAction: "Ask about booking a bone density (DXA) scan — this is recommended periodically while on long-term steroids.",
           personalCategory: "Bone Health",
-          lupusPrompt: "I have lupus, take long-term steroids, and my last bone density (DXA) scan was more than 3 years ago. Can you explain why regular DXA scans matter for people on long-term steroids?",
           clinicianBucket: "today",
           clinicianAction: "DXA scan overdue (>3 years) on long-term steroids — arrange repeat scan.",
           resources: [ROS_LINK]
@@ -652,7 +651,6 @@
           text: "No bone density (DXA) scan on record.",
           personalAction: "Ask about booking a bone density (DXA) scan today.",
           personalCategory: "Bone Health",
-          lupusPrompt: "I have lupus, take long-term steroids, and I've never had a bone density (DXA) scan. Can you explain what this scan involves and why it's recommended?",
           clinicianBucket: "today",
           clinicianAction: "No DXA scan on record despite long-term steroid use — arrange scan.",
           resources: [ROS_LINK]
@@ -662,7 +660,6 @@
           text: "Unsure when bone density was last checked.",
           personalAction: "Ask your doctor today whether you're due a bone density (DXA) scan.",
           personalCategory: "Bone Health",
-          lupusPrompt: "I have lupus and take long-term steroids, but I'm not sure when I last had a bone density (DXA) scan. Can you explain why this matters and what I should ask my doctor?",
           clinicianBucket: "today",
           clinicianAction: "Patient unsure of DXA history — check records and arrange a scan if overdue.",
           resources: [ROS_LINK]
@@ -670,30 +667,8 @@
     ]
   };
 
-  // Mood is screened as PHQ-2 first; a positive screen (combined score >= 3) unlocks
-  // the remaining 7 PHQ-9 items so the full score and safety item can be assessed.
-  const EVERY_MIND_MATTERS = { label: "NHS — Every Mind Matters: Low Mood", url: "https://www.nhs.uk/every-mind-matters/mental-health-issues/low-mood/", domain: "Mood" };
-  const TALKING_THERAPIES = { label: "NHS — Find Talking Therapies (self-referral)", url: "https://www.nhs.uk/nhs-services/mental-health-services/find-nhs-talking-therapies-for-anxiety-and-depression/", domain: "Mood" };
-  const moodScale = () => ([
-    { text: "Not at all", value: 0, flag: null },
-    { text: "Several days", value: 1, flag: null },
-    { text: "More than half the days", value: 2, flag: null },
-    { text: "Nearly every day", value: 3, flag: null }
-  ]);
-  const moodQ1 = { id: "moodQ1", domain: "Mood & Wellbeing", question: "Over the last 2 weeks, how often have you had little interest or pleasure in doing things?", options: moodScale() };
-  const moodQ2 = { id: "moodQ2", domain: "Mood & Wellbeing", question: "Over the last 2 weeks, how often have you felt down, depressed, or hopeless?", options: moodScale() };
-  const moodPHQ9Rest = [
-    { id: "moodQ3", domain: "Mood & Wellbeing", question: "Trouble falling or staying asleep, or sleeping too much?", options: moodScale() },
-    { id: "moodQ4", domain: "Mood & Wellbeing", question: "Feeling tired or having little energy?", options: moodScale() },
-    { id: "moodQ5", domain: "Mood & Wellbeing", question: "Poor appetite, or overeating?", options: moodScale() },
-    { id: "moodQ6", domain: "Mood & Wellbeing", question: "Feeling bad about yourself — or that you are a failure, or have let yourself or your family down?", options: moodScale() },
-    { id: "moodQ7", domain: "Mood & Wellbeing", question: "Trouble concentrating on things, such as reading or watching television?", options: moodScale() },
-    { id: "moodQ8", domain: "Mood & Wellbeing", question: "Moving or speaking so slowly that other people could have noticed? Or the opposite — being so fidgety or restless that you've been moving around more than usual?", options: moodScale() },
-    { id: "moodQ9", domain: "Mood & Wellbeing", question: "Thoughts that you would be better off dead, or of hurting yourself in some way?", options: moodScale() }
-  ];
-
   // The questionnaire flow. Most items are simple single-select steps;
-  // Bone Health and Mood each start with a screener that inserts follow-up steps only when relevant.
+  // Bone Health starts with a screener that inserts follow-up steps only when relevant.
   const medicationReasonStep = {
     id: "medicationReason", domain: "Medication Adherence", type: "text",
     question: "Do you have any concerns about your medication, or anything that's made it harder to take as prescribed?",
@@ -782,7 +757,6 @@
           text: "Drinking above the UK low-risk guideline of 14 units a week.",
           personalAction: "Try cutting down gradually — spread drinks across the week, build in several drink-free days, and try smaller measures or lower-strength drinks. Free NHS-endorsed tools like Drink Free Days can help you track units.",
           personalCategory: "Alcohol",
-          lupusPrompt: "I have lupus and drink between 15 and 35 units of alcohol a week, above the UK low-risk guideline of 14 units. Can you explain why this matters for someone with lupus, and any tips for cutting down?",
           clinicianBucket: "today",
           clinicianAction: "Drinking above the 14 units/week low-risk guideline — consider brief alcohol intervention/advice and check for interactions or hepatotoxicity risk with current medication (e.g. methotrexate).",
           resources: [ALCOHOL_SUPPORT_LINK, ALCOHOL_UNITS_LINK]
@@ -792,7 +766,6 @@
           text: "Drinking significantly above the UK low-risk guideline of 14 units a week.",
           personalAction: "This is well above the low-risk guideline and worth talking to someone about today. Free, confidential alcohol support services can help you cut down or stop, at whatever pace works for you.",
           personalCategory: "Alcohol",
-          lupusPrompt: "I have lupus and drink more than 35 units of alcohol a week. Can you explain how this might affect my lupus or my medications, and what kind of support is available?",
           clinicianBucket: "today",
           clinicianAction: "Drinking significantly above guidance (>35 units/week) — assess for alcohol dependence, check for interactions/hepatotoxicity with current medication, and offer referral to alcohol support services.",
           resources: [ALCOHOL_SUPPORT_LINK, ALCOHOL_UNITS_LINK]
@@ -802,7 +775,6 @@
           text: "Not sure how many units of alcohol they drink in a typical week.",
           personalAction: "A free online alcohol unit calculator can help you work out roughly how much you're drinking, based on what and how much you typically have.",
           personalCategory: "Alcohol",
-          lupusPrompt: "I have lupus and I'm not sure how many units of alcohol I drink in a typical week. Can you explain how to work this out and why it matters for lupus?",
           clinicianBucket: null,
           clinicianAction: null,
           resources: [ALCOHOL_UNITS_LINK]
@@ -824,7 +796,6 @@
           text: "Doing some physical activity, but below the WHO-recommended 150 minutes a week.",
           personalAction: "Building up gradually towards 150 minutes a week of moderate activity (e.g. brisk walking, cycling, swimming), even in short bursts, can help with fatigue, joint stiffness, mood, and bone and heart health in lupus. Any increase helps, even below the full target.",
           personalCategory: "Diet & Exercise",
-          lupusPrompt: "I have lupus and currently do some physical activity, but less than 150 minutes a week. Can you explain how exercise can help with lupus symptoms and how I might safely build up?",
           clinicianBucket: null,
           clinicianAction: null,
           resources: [EXERCISE_LINK]
@@ -834,7 +805,6 @@
           text: "Little or no regular physical activity.",
           personalAction: "Even light activity — short walks, gentle stretching, or chair-based exercise — is a good place to start and can be built up gradually. It's worth asking your care team about activity that's safe for your joints and current disease activity.",
           personalCategory: "Diet & Exercise",
-          lupusPrompt: "I have lupus and currently do little or no physical activity. Can you explain gentle ways to start being more active, and anything I should be careful of with lupus?",
           clinicianBucket: null,
           clinicianAction: null,
           resources: [EXERCISE_LINK]
@@ -859,7 +829,6 @@
             text: "A dose or two has been tricky to fit in over the last two weeks.",
             personalAction: "A daily phone alarm or a pillbox can help fit your medication into your routine.",
             personalCategory: "Medication",
-            lupusPrompt: "I have lupus and have missed a dose or two of my medication in the last two weeks. Can you explain why taking lupus medication consistently matters, and any tips for remembering?",
             clinicianBucket: "today",
             clinicianAction: "A dose or two has been missed recently — worth a quick chat about what's making it tricky (timing, side effects, understanding) and whether a reminder aid or dosette box would help.",
             resources: []
@@ -869,7 +838,6 @@
             text: "Taking medication regularly has been difficult over the last two weeks.",
             personalAction: "It's worth telling your care team today what's been making it hard to take your medication regularly.",
             personalCategory: "Medication",
-            lupusPrompt: "I have lupus and have found it difficult to take my medication regularly over the last two weeks (missed around 3 to 5 days). Can you explain what risks this carries and what might help?",
             clinicianBucket: "today",
             clinicianAction: "Taking medication regularly has been difficult recently — worth exploring what's getting in the way and whether the flare risk needs addressing, and considering whether simplifying the regimen or specialist nurse input would help.",
             resources: []
@@ -879,7 +847,6 @@
             text: "Medication has been hard to take regularly over the last two weeks.",
             personalAction: "This is worth raising with the doctor today — missing this many doses can raise the chance of a flare, and there's usually a workable solution.",
             personalCategory: "Medication",
-            lupusPrompt: "I have lupus and have missed more than 5 days of my medication in the last two weeks. Can you explain the risks of this and what I should discuss with my doctor?",
             clinicianBucket: "today",
             clinicianAction: "Medication has been hard to take regularly recently — worth a supportive review today: understanding what's getting in the way (side effects, access, understanding, mental health) and whether closer monitoring or a different regimen would help.",
             resources: []
@@ -897,7 +864,6 @@
             text: "Sunscreen isn't yet part of the everyday routine.",
             personalAction: "Try applying SPF50+ broad-spectrum sunscreen daily, year-round — UV through windows and on cloudy days can still affect lupus.",
             personalCategory: "Photoprotection",
-            lupusPrompt: "I have lupus and only use sunscreen on sunny summer days. Can you explain why daily sun protection matters for lupus, even in winter or on cloudy days?",
             clinicianBucket: null,
             clinicianAction: "Reinforce photoprotection education; check for a photosensitive rash.",
             resources: [{ label: "Lupus UK — Photoprotection & Sun Guide", url: "https://lupusuk.org.uk/eclipse/", domain: "Photoprotection" }]
@@ -907,7 +873,6 @@
             text: "Sun protection is minimal at the moment.",
             personalAction: "Daily SPF50+ sunscreen and UV-protective clothing can make a real difference — sun exposure is one of the most common lupus flare triggers.",
             personalCategory: "Photoprotection",
-            lupusPrompt: "I have lupus and rarely or never use sun protection. Can you explain how sun exposure affects lupus and what kind of protection is usually recommended?",
             clinicianBucket: null,
             clinicianAction: "Assess for photosensitivity/rash; give photoprotection advice/leaflet; consider dermatology referral if severe.",
             resources: [{ label: "Lupus UK — Photoprotection & Sun Guide", url: "https://lupusuk.org.uk/eclipse/", domain: "Photoprotection" }]
@@ -924,7 +889,6 @@
             text: "One recommended vaccine (flu or pneumococcal) is outstanding.",
             personalAction: "Book the missing vaccine at your GP practice or a local pharmacy when convenient.",
             personalCategory: "Vaccination",
-            lupusPrompt: "I have lupus and one of my recommended vaccines (flu or pneumococcal) is outstanding. Can you explain why these vaccines are particularly important for people with lupus?",
             clinicianBucket: "gp",
             clinicianAction: "Confirm which vaccine is outstanding and arrange or refer.",
             resources: [{ label: "NHS — Vaccinations Overview", url: "https://www.nhs.uk/vaccinations/", domain: "Vaccinations" }]
@@ -934,7 +898,6 @@
             text: "Flu and pneumococcal vaccination status is unclear or outstanding.",
             personalAction: "It's worth contacting your GP practice this week to catch up — these vaccines matter more while taking immunosuppressants.",
             personalCategory: "Vaccination",
-            lupusPrompt: "I have lupus and I'm not up to date with my flu and pneumococcal vaccines. Can you explain why vaccination matters for people with lupus, especially on immunosuppressants?",
             clinicianBucket: "gp",
             clinicianAction: "Review vaccination record; arrange catch-up vaccination; consider shingles/COVID-19 vaccination per current guidance.",
             resources: [
@@ -954,7 +917,6 @@
             text: "Fatigue has been having a moderate impact this week.",
             personalAction: "Pacing your activities and keeping a regular sleep routine can help — note when fatigue is worst to share with your team.",
             personalCategory: "Fatigue Management",
-            lupusPrompt: "I have lupus and fatigue has been moderately affecting my daily life this week. Can you explain why lupus causes fatigue and what might help manage it?",
             clinicianBucket: null,
             clinicianAction: "Screen for reversible contributors (anaemia, thyroid dysfunction, disease activity, low mood); discuss pacing/energy conservation.",
             resources: [{ label: "Lupus UK — Managing Fatigue", url: "https://lupusuk.org.uk/fatigue/", domain: "Fatigue" }]
@@ -964,7 +926,6 @@
             text: "Fatigue has been significantly affecting daily life this week.",
             personalAction: "It's worth mentioning this level of fatigue to the doctor today, as it may need a closer look.",
             personalCategory: "Fatigue Management",
-            lupusPrompt: "I have lupus and fatigue has been severely affecting my daily life this week. Can you explain possible causes of severe fatigue in lupus and when it's worth seeking urgent advice?",
             clinicianBucket: null,
             clinicianAction: "Assess disease activity; screen for anaemia, thyroid dysfunction, fibromyalgia and depression; consider fatigue-management referral.",
             resources: [{ label: "Lupus UK — Managing Fatigue", url: "https://lupusuk.org.uk/fatigue/", domain: "Fatigue" }]
@@ -989,7 +950,6 @@
             text: "Cholesterol hasn't been checked in the past 12 months.",
             personalAction: "Regular activity and a heart-healthy diet (more fruit, vegetables and wholegrains, less salt and saturated fat) help protect your heart — lupus raises cardiovascular risk over time.",
             personalCategory: "Diet & Exercise",
-            lupusPrompt: "I have lupus and haven't had my cholesterol checked in the past 12 months. Can you explain why cardiovascular risk is higher with lupus and what checks are usually recommended?",
             clinicianBucket: "gp",
             clinicianAction: "Arrange a lipid profile; calculate cardiovascular risk (e.g. QRISK3), with SLE-specific consideration.",
             resources: [
@@ -1002,7 +962,6 @@
             text: "Blood pressure and cholesterol haven't been checked recently.",
             personalAction: "Regular activity and a heart-healthy diet (more fruit, vegetables and wholegrains, less salt and saturated fat) help protect your heart — lupus raises cardiovascular risk over time.",
             personalCategory: "Diet & Exercise",
-            lupusPrompt: "I have lupus and haven't had my blood pressure or cholesterol checked recently. Can you explain why heart health monitoring matters for people with lupus?",
             clinicianBucket: "gp",
             clinicianAction: "Check BP and arrange a lipid profile; calculate cardiovascular risk; discuss lifestyle modification.",
             resources: [
@@ -1023,7 +982,6 @@
             text: "Currently smoking or vaping.",
             personalAction: "Free NHS quit-smoking support is available and can make quitting easier — smoking can also reduce how well hydroxychloroquine works.",
             personalCategory: "Smoking Cessation",
-            lupusPrompt: "I have lupus, take hydroxychloroquine, and currently smoke. Can you explain how smoking might affect my lupus or my medication, and what support is available to quit?",
             clinicianBucket: null,
             clinicianAction: "Offer very brief smoking-cessation advice and referral to stop-smoking services; explain the impact on hydroxychloroquine efficacy and cardiovascular/renal risk.",
             resources: [{ label: "NHS — Better Health: Quit Smoking", url: "https://www.nhs.uk/better-health/quit-smoking/", domain: "Smoking" }]
@@ -1038,9 +996,7 @@
         { text: "Yes", flag: null, insertNext: [alcoholUnitsStep] }
       ]
     },
-    exerciseStep,
-    moodQ1,
-    moodQ2
+    exerciseStep
   ];
 
   let currentStep = -1;
@@ -1049,99 +1005,6 @@
   const contentEl = document.getElementById('content');
   const footerEl = document.getElementById('footer-nav');
   const progressBar = document.getElementById('progress');
-
-  function computeMoodFlag() {
-    if (!answers.moodQ1 || !answers.moodQ2) return null;
-    const val = id => (answers[id] ? answers[id].value : null);
-    const phq2 = val('moodQ1') + val('moodQ2');
-    const restIds = ['moodQ3', 'moodQ4', 'moodQ5', 'moodQ6', 'moodQ7', 'moodQ8', 'moodQ9'];
-    const fullyAnswered = restIds.every(id => answers[id]);
-
-    if (!fullyAnswered) {
-      if (phq2 === 0) return null;
-      if (phq2 < 3) {
-        return {
-          type: "yellow", domain: "Mood & Wellbeing",
-          text: "Some low mood or reduced interest has been noticed over the past two weeks.",
-          personalAction: "Gentle regular activity, a steady sleep routine, and talking to someone you trust can all help.",
-          personalCategory: "Mood — Self-Care",
-          lupusPrompt: "I have lupus and have been noticing some low mood recently. Can you explain how lupus can affect mood, and what kind of support is usually available?",
-          clinicianBucket: null,
-          clinicianAction: null,
-          resources: [EVERY_MIND_MATTERS]
-        };
-      }
-      return null;
-    }
-
-    const item9 = val('moodQ9');
-    const total = phq2 + restIds.reduce((sum, id) => sum + val(id), 0);
-
-    // Note: this domain never sets clinicianBucket/clinicianAction — the PHQ-9 score and the
-    // safety item are surfaced as neutral facts by computeMoodScoreSummary() in a dedicated
-    // "Flagged For Clinical Review" block, rather than the app telling the clinician whether or
-    // where to discuss them. personalAction below is direct-to-patient self-care/safety-net
-    // information, not a recommendation to the clinician.
-    if (item9 > 0) {
-      return {
-        domain: "Mood & Wellbeing",
-        text: `Mood screening today (PHQ-9, score ${total}/27) included some thoughts of self-harm or that life isn't worth living.`,
-        personalAction: "Please tell a member of staff or your doctor about this today — support is available right now. If you feel at risk immediately, call 999 or go to A&E, contact the Samaritans free anytime on 116 123, or text SHOUT to 85258.",
-        personalCategory: "Mood — Self-Care",
-        noLupusPrompt: true, // safety-critical — this should go to a person, never offered as a chatbot prompt
-        clinicianBucket: null,
-        clinicianAction: null,
-        resources: [EVERY_MIND_MATTERS]
-      };
-    }
-
-    let severity, show;
-    if (total <= 4) { severity = "minimal"; show = false; }
-    else if (total <= 9) { severity = "mild"; show = true; }
-    else if (total <= 14) { severity = "moderate"; show = true; }
-    else if (total <= 19) { severity = "moderately severe"; show = true; }
-    else { severity = "severe"; show = true; }
-
-    if (!show) return null;
-
-    return {
-      domain: "Mood & Wellbeing",
-      text: `Mood screening (PHQ-9) suggests ${severity} symptoms today (score ${total}/27).`,
-      personalAction: "Gentle regular activity, a steady sleep routine, and talking to someone you trust can all help. Self-referral to NHS Talking Therapies is also available without needing a GP appointment first.",
-      personalCategory: "Mood — Self-Care",
-      lupusPrompt: "I have lupus and a mood screening today suggested I may be experiencing some symptoms of low mood. Can you explain how lupus can affect mental health and what kind of support is available?",
-      clinicianBucket: null,
-      clinicianAction: null,
-      resources: [EVERY_MIND_MATTERS, TALKING_THERAPIES]
-    };
-  }
-
-  // Neutral score display for the summary page — reports the PHQ-2/PHQ-9 result as a fact for
-  // the clinician to review and interpret, rather than the app recommending whether/where to
-  // discuss it (that routing previously lived in computeMoodFlag(), now removed).
-  function computeMoodScoreSummary() {
-    if (!answers.moodQ1 || !answers.moodQ2) return null;
-    const val = id => (answers[id] ? answers[id].value : null);
-    const phq2 = val('moodQ1') + val('moodQ2');
-    if (phq2 === 0) return null;
-
-    const restIds = ['moodQ3', 'moodQ4', 'moodQ5', 'moodQ6', 'moodQ7', 'moodQ8', 'moodQ9'];
-    const fullyAnswered = restIds.every(id => answers[id]);
-    if (!fullyAnswered) {
-      return { stage: 'phq2', score: phq2, max: 6 };
-    }
-
-    const item9 = val('moodQ9');
-    const total = phq2 + restIds.reduce((sum, id) => sum + val(id), 0);
-    let severity;
-    if (total <= 4) severity = "Minimal";
-    else if (total <= 9) severity = "Mild";
-    else if (total <= 14) severity = "Moderate";
-    else if (total <= 19) severity = "Moderately severe";
-    else severity = "Severe";
-
-    return { stage: 'phq9', score: total, max: 27, severity, safetyEndorsed: item9 > 0 };
-  }
 
   // Neutral fact display for the summary page — reports the pregnancy-potential, LARC and
   // pregnancy-intent answers as-is, for the clinician to review and interpret themselves,
@@ -1164,7 +1027,6 @@
   function computeFlags() {
     const flags = [];
     steps.forEach(step => {
-      if (step.domain === "Mood & Wellbeing") return; // handled by computeMoodFlag()
       const chosen = answers[step.id];
       if (chosen && chosen.flag) {
         let flag = { ...chosen.flag, domain: step.domain };
@@ -1181,8 +1043,6 @@
         flags.push(flag);
       }
     });
-    const moodFlag = computeMoodFlag();
-    if (moodFlag) flags.push(moodFlag);
     return flags;
   }
 
@@ -1259,16 +1119,6 @@
       steps.splice(afterThis, 0, ...toInsert);
     }
 
-    // PHQ-2 triage: a combined score of 3+ on the first two mood questions
-    // unlocks the remaining 7 PHQ-9 items (including the safety item).
-    if (step.id === "moodQ2") {
-      const phq2 = (answers.moodQ1 ? answers.moodQ1.value : 0) + selectedOption.value;
-      if (phq2 >= 3) {
-        const toInsert = moodPHQ9Rest.map(s => ({ ...s, _insertedBy: step.id }));
-        steps.splice(afterThis, 0, ...toInsert);
-      }
-    }
-
     currentStep++;
     render();
   }
@@ -1318,148 +1168,35 @@
     }
   }
 
+  // Small inline-SVG line icons for the summary screen's Today/GP/Personal Action cards, matched
+  // by keyword against a flag's domain or personal category. currentColor means each icon
+  // automatically follows the card's colour (neutral/yellow/red) and the active theme/contrast
+  // mode, with no separate icon assets or external fonts needed.
+  const ICON_DEFS = [
+    { keys: ['bone'], svg: '<circle cx="7" cy="6" r="3"/><circle cx="17" cy="18" r="3"/><path d="M9.2 8.2 14.8 15.8"/>' },
+    { keys: ['alcohol'], svg: '<path d="M8 2h8l-1 7a3 3 0 0 1-6 0L8 2Z"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/>' },
+    { keys: ['medication'], svg: '<rect x="2" y="8" width="20" height="8" rx="4" transform="rotate(45 12 12)"/><line x1="12" y1="8" x2="12" y2="16" transform="rotate(45 12 12)"/>' },
+    { keys: ['photoprotection', 'sun'], svg: '<circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="7" y2="7"/><line x1="17" y1="17" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="7" y2="17"/><line x1="17" y1="7" x2="19.1" y2="4.9"/>' },
+    { keys: ['vaccin'], svg: '<line x1="18" y1="2" x2="22" y2="6"/><line x1="17" y1="7" x2="20" y2="4"/><line x1="7" y1="17" x2="4" y2="20"/><line x1="4" y1="20" x2="2" y2="22"/><line x1="7" y1="7" x2="17" y2="17"/><line x1="9" y1="5" x2="12" y2="8"/><line x1="5" y1="9" x2="8" y2="12"/>' },
+    { keys: ['fatigue'], svg: '<rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="10" x2="22" y2="14"/><rect x="4" y="9" width="4" height="6" fill="currentColor" stroke="none"/>' },
+    { keys: ['cardiovascular', 'diet', 'exercise', 'physical activity'], svg: '<path d="M12 21s-7.5-4.6-10-9.3C.5 8.5 2 4.8 5.6 4c2-.4 3.8.6 4.9 2.2C11.6 4.6 13.4 3.6 15.4 4c3.6.8 5.1 4.5 3.6 7.7C20.5 16.4 12 21 12 21Z"/><path d="M8 12h2l1.5-2 1 4 1.5-2H16"/>' },
+    { keys: ['smoking'], svg: '<line x1="2" y1="18" x2="14" y2="18"/><line x1="2" y1="15" x2="14" y2="15"/><path d="M14 15v3"/><path d="M17 12c0-1.5 1-1.5 1-3s-1-1.5-1-3"/><path d="M20 12c0-1.5 1-1.5 1-3s-1-1.5-1-3"/><line x1="3" y1="3" x2="21" y2="21"/>' }
+  ];
+  const FALLBACK_ICON_SVG = '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v2H9z"/><path d="M8 11l2 2 4-4"/><line x1="8" y1="16" x2="16" y2="16"/>';
+  const ALL_GOOD_ICON_SVG = '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/>';
+
+  function getCategoryIcon(label) {
+    const key = String(label || '').toLowerCase();
+    const match = ICON_DEFS.find(def => def.keys.some(k => key.includes(k)));
+    const inner = match ? match.svg : FALLBACK_ICON_SVG;
+    return `<svg class="item-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+  }
+
   // Builds the actual summary content (everything inside the ".card" on the results screen,
   // except the "Keep A Copy" box) as an HTML string. Shared by the live renderSummary() and by
   // buildSummaryPageDocument() below, so the saved standalone page is exactly what's on screen —
   // real <a> links and real <input type="checkbox"> tick boxes, both still fully live/clickable
   // once reopened later, since neither needs any JavaScript to work.
-  // "Discuss With LupusGPT" — LupusGPT has no API and is a different website, so a prompt can't
-  // be sent to it, or typed into its page, automatically: once that page opens in its own tab,
-  // browser security rules keep this page from reaching into it, regardless of what either site
-  // is built on. The best available substitute: copy the question to the clipboard, then show a
-  // modal with the exact paste steps spelled out AND the question itself shown on screen (so if
-  // the clipboard copy is silently blocked, the patient can still read or select it themselves).
-  // The link's real href still opens LupusGPT directly even if JavaScript doesn't run at all, so
-  // it degrades gracefully — including inside the zero-JS-by-default saved webpage (see
-  // DISCUSS_LUPUS_SCRIPT_SOURCE below, injected there as its own small, self-contained script).
-  function jsStringLiteral(str) {
-    return "'" + String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ') + "'";
-  }
-
-  function escapeHTML(str) {
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-
-  function copyTextBestEffort(text) {
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).catch(() => {});
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        try { document.execCommand('copy'); } catch (e) { /* ignore — the modal still shows the text */ }
-        ta.remove();
-      }
-    } catch (e) { /* ignore — the modal still shows the text to copy by hand */ }
-  }
-
-  function showLupusModal(promptText) {
-    const overlay = document.createElement('div');
-    overlay.className = 'img-overlay';
-    overlay.innerHTML = `
-      <div class="img-modal">
-        <div class="img-modal-header">
-          <span>Discuss With LupusGPT</span>
-          <button type="button" class="img-close-btn" aria-label="Close">&times;</button>
-        </div>
-        <div class="img-modal-body">
-          <p style="margin:0 0 10px;">Your question has been copied. Once LupusGPT opens in its own tab:</p>
-          <ol style="margin:0 0 14px; padding-left:20px; line-height:1.6;">
-            <li>Tap the message box at the bottom of the screen</li>
-            <li>Press and hold inside it, then tap <strong>Paste</strong></li>
-            <li>Tap Send</li>
-          </ol>
-          <p style="margin:0 0 6px; font-size:0.8rem; color:var(--text-muted);">If paste doesn't work, you can copy this question yourself:</p>
-          <textarea readonly class="text-input" rows="4" onclick="this.select()">${escapeHTML(promptText)}</textarea>
-        </div>
-        <div class="img-modal-actions">
-          <button type="button" class="btn btn-secondary" id="lupus-modal-copy">Copy Again</button>
-          <button type="button" class="btn btn-primary" id="lupus-modal-open">Open LupusGPT</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-    const close = () => overlay.remove();
-    overlay.querySelector('.img-close-btn').onclick = close;
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-    overlay.querySelector('#lupus-modal-copy').onclick = () => copyTextBestEffort(promptText);
-    overlay.querySelector('#lupus-modal-open').onclick = () => window.open(LUPUSGPT_URL, '_blank', 'noopener');
-  }
-
-  function discussWithLupusGPT(event, promptText) {
-    if (event && event.preventDefault) event.preventDefault(); // don't navigate yet — the modal's own button does that
-    copyTextBestEffort(promptText);
-    showLupusModal(promptText);
-    return false;
-  }
-
-  // Identical to the functions above, kept as a literal string so it can be inlined as a
-  // standalone <script> inside the saved webpage export, which has no access to this page's own
-  // script. Keep the two copies in sync if this logic ever changes.
-  const DISCUSS_LUPUS_SCRIPT_SOURCE = `
-    function escapeHTML(str) {
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-    function copyTextBestEffort(text) {
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).catch(() => {});
-        } else {
-          const ta = document.createElement('textarea');
-          ta.value = text;
-          ta.style.position = 'fixed';
-          ta.style.opacity = '0';
-          document.body.appendChild(ta);
-          ta.select();
-          try { document.execCommand('copy'); } catch (e) {}
-          ta.remove();
-        }
-      } catch (e) {}
-    }
-    function showLupusModal(promptText) {
-      const overlay = document.createElement('div');
-      overlay.className = 'img-overlay';
-      overlay.innerHTML = ` + "`" + `
-        <div class="img-modal">
-          <div class="img-modal-header">
-            <span>Discuss With LupusGPT</span>
-            <button type="button" class="img-close-btn" aria-label="Close">&times;</button>
-          </div>
-          <div class="img-modal-body">
-            <p style="margin:0 0 10px;">Your question has been copied. Once LupusGPT opens in its own tab:</p>
-            <ol style="margin:0 0 14px; padding-left:20px; line-height:1.6;">
-              <li>Tap the message box at the bottom of the screen</li>
-              <li>Press and hold inside it, then tap <strong>Paste</strong></li>
-              <li>Tap Send</li>
-            </ol>
-            <p style="margin:0 0 6px; font-size:0.8rem; color:var(--text-muted);">If paste doesn't work, you can copy this question yourself:</p>
-            <textarea readonly class="text-input" rows="4" onclick="this.select()">${'$'}{escapeHTML(promptText)}</textarea>
-          </div>
-          <div class="img-modal-actions">
-            <button type="button" class="btn btn-secondary" id="lupus-modal-copy">Copy Again</button>
-            <button type="button" class="btn btn-primary" id="lupus-modal-open">Open LupusGPT</button>
-          </div>
-        </div>
-      ` + "`" + `;
-      document.body.appendChild(overlay);
-      const close = () => overlay.remove();
-      overlay.querySelector('.img-close-btn').onclick = close;
-      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-      overlay.querySelector('#lupus-modal-copy').onclick = () => copyTextBestEffort(promptText);
-      overlay.querySelector('#lupus-modal-open').onclick = () => window.open('${LUPUSGPT_URL}', '_blank', 'noopener');
-    }
-    function discussWithLupusGPT(event, promptText) {
-      if (event && event.preventDefault) event.preventDefault();
-      copyTextBestEffort(promptText);
-      showLupusModal(promptText);
-      return false;
-    }
-  `;
-
   function buildSummaryCardHTML() {
     const uniqueFlags = computeFlags();
 
@@ -1476,14 +1213,6 @@
 
     // Neutral, non-directive facts for clinical review — these report screening results and
     // answers as-is rather than the app recommending whether, where or what to discuss.
-    const moodSummary = computeMoodScoreSummary();
-    const moodSummaryHTML = moodSummary ? `
-      <div class="flag-card ${moodSummary.stage === 'phq9' && moodSummary.safetyEndorsed ? 'red' : 'info'}">
-        <strong class="flag-title">Mood Screen (${moodSummary.stage === 'phq9' ? 'PHQ-9' : 'PHQ-2'})</strong>
-        Score: ${moodSummary.score}/${moodSummary.max}${moodSummary.severity ? ` — ${moodSummary.severity}` : ''}.
-        ${moodSummary.stage === 'phq9' ? `Safety item (thoughts of self-harm): <strong>${moodSummary.safetyEndorsed ? 'Endorsed' : 'Not endorsed'}</strong>.` : ''}
-      </div>` : '';
-
     const repro = computeReproductiveHealthSummary();
     const reproResourceLinks = repro ? [
         ...(repro.larc === 'No' || repro.larc === 'Not sure / prefer not to say' ? [CONTRACEPTION_LINK] : []),
@@ -1503,44 +1232,46 @@
         </a>
       `).join('')}` : '';
 
-    const flaggedReviewHTML = (moodSummaryHTML || reproHTML) ? `
+    const flaggedReviewHTML = reproHTML ? `
       <div class="summary-section">
         <h3 class="section-title">Flagged For Clinical Review</h3>
         <p class="section-hint">Objective screening results and answers — for you to review and interpret; this app doesn't recommend what, if anything, to do about them.</p>
-        ${moodSummaryHTML}
         ${reproHTML}
       </div>` : '';
 
     let personalHTML, todayHTML, gpHTML, contextualResourcesHTML;
 
     if (uniqueFlags.length === 0) {
-      personalHTML = `<div class="patient-action"><span>Your current routine — sunscreen, vaccines and medication timing — looks on track. Let the doctor know if anything changes.</span></div>`;
+      personalHTML = `
+        <div class="patient-action flag-green">
+          <span class="item-icon"><svg class="item-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ALL_GOOD_ICON_SVG}</svg></span>
+          <span class="item-content">Your current routine — sunscreen, vaccines and medication timing — looks on track. Let the doctor know if anything changes.</span>
+        </div>`;
       todayHTML = `<p class="section-hint">Nothing flagged for today's appointment.</p>`;
       gpHTML = `<p class="section-hint">Nothing flagged for your GP.</p>`;
       contextualResourcesHTML = '';
     } else {
       personalHTML = uniqueFlags.map((f, i) => `
-        <div class="patient-action-item">
-          <label class="patient-action">
-            <input type="checkbox" id="pa-${i}">
-            <span><span class="cat-label">${f.personalCategory || f.domain}</span>${f.personalAction}</span>
-          </label>
-          ${(!f.noLupusPrompt && f.lupusPrompt) ? `
-          <a href="${LUPUSGPT_URL}" target="_blank" rel="noopener" class="lupus-ask-link" onclick="return discussWithLupusGPT(event, ${jsStringLiteral(f.lupusPrompt)})">Discuss With LupusGPT</a>` : ''}
-        </div>
+        <label class="patient-action flag-${f.type || 'none'}">
+          <span class="item-icon">${getCategoryIcon(f.personalCategory || f.domain)}</span>
+          <input type="checkbox" id="pa-${i}">
+          <span class="item-content"><span class="cat-label">${f.personalCategory || f.domain}</span>${f.personalAction}</span>
+        </label>
       `).join('');
 
       todayHTML = todayItems.length ? todayItems.map((f, i) => `
-        <label class="doctor-item">
+        <label class="doctor-item flag-${f.type || 'none'}">
+          <span class="item-icon">${getCategoryIcon(f.domain)}</span>
           <input type="checkbox" id="ta-${i}">
-          <span><span class="domain-label">${f.domain}</span><span class="doctor-text">${f.clinicianAction}</span></span>
+          <span class="item-content"><span class="domain-label">${f.domain}</span><span class="doctor-text">${f.clinicianAction}</span></span>
         </label>
       `).join('') : `<p class="section-hint">Nothing flagged for today's appointment.</p>`;
 
       gpHTML = gpItems.length ? gpItems.map((f, i) => `
-        <label class="doctor-item">
+        <label class="doctor-item flag-${f.type || 'none'}">
+          <span class="item-icon">${getCategoryIcon(f.domain)}</span>
           <input type="checkbox" id="ga-${i}">
-          <span><span class="domain-label">${f.domain}</span><span class="doctor-text">${f.clinicianAction}</span></span>
+          <span class="item-content"><span class="domain-label">${f.domain}</span><span class="doctor-text">${f.clinicianAction}</span></span>
         </label>
       `).join('') : `<p class="section-hint">Nothing flagged for your GP.</p>`;
 
@@ -1642,16 +1373,6 @@
     const headerHTML = document.querySelector('header.app-header') ? document.querySelector('header.app-header').innerHTML : '';
     const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     const cardHTML = buildSummaryCardHTML();
-    // The card's "Discuss With LupusGPT" links are plain <a href> tags, so they still open LupusGPT
-    // with zero JavaScript; this one small inline script is only a progressive enhancement that
-    // also copies the question to the clipboard first. Only included if the card actually uses it.
-    // Built with string concatenation rather than a template literal holding a whole closing
-    // script tag as a literal substring — that substring, written out in full, would terminate
-    // THIS page's own script block early when the browser's HTML parser scans the raw file,
-    // since HTML parsing doesn't know about JS string/template/comment context.
-    const lupusScriptTag = cardHTML.includes('discussWithLupusGPT')
-      ? '<scri' + 'pt>' + DISCUSS_LUPUS_SCRIPT_SOURCE + '</scri' + 'pt>'
-      : '';
 
     return `<!DOCTYPE html>
 <html lang="en"${theme ? ` data-theme="${theme}"` : ''}${contrast ? ` data-contrast="${contrast}"` : ''}${htmlClass ? ` class="${htmlClass}"` : ''}>
@@ -1671,7 +1392,6 @@ ${styleBlocks}
       </div>
     </main>
   </div>
-  ${lupusScriptTag}
 </body>
 </html>`;
   }
@@ -1743,7 +1463,6 @@ ${styleBlocks}
     const todayItems = uniqueFlags.filter(f => f.clinicianBucket === 'today');
     const gpItems = uniqueFlags.filter(f => f.clinicianBucket === 'gp');
     const topConcern = answers.topConcern && answers.topConcern.value;
-    const moodSummary = computeMoodScoreSummary();
     const repro = computeReproductiveHealthSummary();
     const reproResourceLinks = repro ? [
         ...(repro.larc === 'No' || repro.larc === 'Not sure / prefer not to say' ? [CONTRACEPTION_LINK] : []),
@@ -1758,7 +1477,7 @@ ${styleBlocks}
 
     const dateStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-    return { uniqueFlags, todayItems, gpItems, topConcern, moodSummary, repro, uniqueResources, dateStr };
+    return { uniqueFlags, todayItems, gpItems, topConcern, repro, uniqueResources, dateStr };
   }
 
   // Draws the whole card into `ctx` (already scaled for device resolution) and returns the
@@ -1946,27 +1665,16 @@ ${styleBlocks}
     }
 
     // Flagged For Clinical Review (neutral facts)
-    if (data.moodSummary || (data.repro && data.repro.current)) {
+    if (data.repro && data.repro.current) {
       sectionTitle('Flagged For Clinical Review');
       sectionHint("Objective screening results and answers — for review; not a recommendation.");
 
-      if (data.moodSummary) {
-        const ms = data.moodSummary;
-        const label = ms.stage === 'phq9' ? 'Mood Screen (PHQ-9)' : 'Mood Screen (PHQ-2)';
-        let text = `Score: ${ms.score}/${ms.max}${ms.severity ? ' — ' + ms.severity : ''}.`;
-        if (ms.stage === 'phq9') text += ` Safety item (thoughts of self-harm): ${ms.safetyEndorsed ? 'Endorsed' : 'Not endorsed'}.`;
-        const urgent = ms.stage === 'phq9' && ms.safetyEndorsed;
-        drawFlagCard(label, text, urgent ? c.redBg : c.gpBadgeBg, urgent ? c.redBorder : c.gpBadgeText, urgent ? c.redText : c.gpBadgeText);
-      }
-
-      if (data.repro && data.repro.current) {
-        const r = data.repro;
-        let text = `Currently pregnant or breastfeeding: ${r.current}.`;
-        if (r.pregnancyPotential) text += ` Capable of becoming pregnant: ${r.pregnancyPotential}.`;
-        if (r.larc) text += ` Using a LARC: ${r.larc}.`;
-        if (r.intent) text += ` Planning a pregnancy in the next year: ${r.intent}.`;
-        drawFlagCard('Reproductive Health', text, r.currentlyPregnantOrBreastfeeding ? c.redBg : c.gpBadgeBg, r.currentlyPregnantOrBreastfeeding ? c.redBorder : c.gpBadgeText, r.currentlyPregnantOrBreastfeeding ? c.redText : c.gpBadgeText);
-      }
+      const r = data.repro;
+      let reproText = `Currently pregnant or breastfeeding: ${r.current}.`;
+      if (r.pregnancyPotential) reproText += ` Capable of becoming pregnant: ${r.pregnancyPotential}.`;
+      if (r.larc) reproText += ` Using a LARC: ${r.larc}.`;
+      if (r.intent) reproText += ` Planning a pregnancy in the next year: ${r.intent}.`;
+      drawFlagCard('Reproductive Health', reproText, r.currentlyPregnantOrBreastfeeding ? c.redBg : c.gpBadgeBg, r.currentlyPregnantOrBreastfeeding ? c.redBorder : c.gpBadgeText, r.currentlyPregnantOrBreastfeeding ? c.redText : c.gpBadgeText);
       y += 22;
     }
 
@@ -2131,15 +1839,9 @@ ${styleBlocks}
       text += 'TODAY\'S MAIN CONCERN\n- "' + topConcern + '"\n\n';
     }
 
-    const moodSummary = computeMoodScoreSummary();
     const repro = computeReproductiveHealthSummary();
-    if (moodSummary || repro) {
+    if (repro) {
       text += 'FLAGGED FOR CLINICAL REVIEW (objective results/answers only — not a recommendation)\n';
-      if (moodSummary) {
-        text += '- Mood Screen (' + (moodSummary.stage === 'phq9' ? 'PHQ-9' : 'PHQ-2') + '): score ' + moodSummary.score + '/' + moodSummary.max + (moodSummary.severity ? ' — ' + moodSummary.severity : '') + '.';
-        if (moodSummary.stage === 'phq9') text += ' Safety item (thoughts of self-harm): ' + (moodSummary.safetyEndorsed ? 'Endorsed' : 'Not endorsed') + '.';
-        text += '\n';
-      }
       if (repro) {
         text += '- Reproductive Health: currently pregnant or breastfeeding — ' + repro.current + '.';
         if (repro.pregnancyPotential) text += ' Capable of becoming pregnant — ' + repro.pregnancyPotential + '.';
@@ -2160,12 +1862,7 @@ ${styleBlocks}
     if (uniqueFlags.length === 0) {
       text += '- Nothing flagged today — keep up your current routine.\n';
     } else {
-      uniqueFlags.forEach(f => {
-        text += '- [' + (f.personalCategory || f.domain) + '] ' + f.personalAction + '\n';
-        if (!f.noLupusPrompt && f.lupusPrompt) {
-          text += '  Ask LupusGPT: ' + f.lupusPrompt + ' (' + LUPUSGPT_URL + ')\n';
-        }
-      });
+      uniqueFlags.forEach(f => { text += '- [' + (f.personalCategory || f.domain) + '] ' + f.personalAction + '\n'; });
     }
 
     const contextualResources = [];
