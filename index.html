@@ -860,6 +860,15 @@
       allowSkip: true
     },
     {
+      id: "age", domain: "About You",
+      question: "Are you 50 or older?",
+      options: [
+        { text: "Yes", flag: null },
+        { text: "No", flag: null },
+        { text: "Prefer not to say", flag: null }
+      ]
+    },
+    {
       id: "medication", domain: "Medication Adherence",
       question: "In the last two weeks, how often have you missed or skipped taking any of your lupus medications?",
       options: [
@@ -975,9 +984,11 @@
     {
       id: "boneScreener", domain: "Bone Health",
       question: "Are you currently taking daily steroid tablets (e.g. Prednisolone)?",
+      // insertNext is computed dynamically in selectOption() for this step — the follow-up bone
+      // health questions are triggered by steroid use OR being aged 50+, not just this answer.
       options: [
         { text: "No", flag: null },
-        { text: "Yes", flag: null, insertNext: [boneCalciumStep, boneBisphosphonateStep, boneDXAStep] }
+        { text: "Yes", flag: null }
       ]
     },
     {
@@ -1162,8 +1173,19 @@
     while (steps[afterThis] && steps[afterThis]._insertedBy === step.id) {
       steps.splice(afterThis, 1);
     }
-    if (selectedOption.insertNext) {
-      const toInsert = selectedOption.insertNext.map(s => ({ ...s, _insertedBy: step.id }));
+
+    // Bone Health is triggered by EITHER being on daily steroids (this question) or being aged
+    // 50+ (asked earlier, near the start) — both are recognised, independent osteoporosis risk
+    // factors, so either one alone should surface the bone health questions.
+    let insertNext = selectedOption.insertNext;
+    if (step.id === "boneScreener") {
+      const ageAnswer = answers.age;
+      const ageTrigger = ageAnswer && ageAnswer.text === "Yes";
+      const onSteroids = selectedOption.text === "Yes";
+      insertNext = (onSteroids || ageTrigger) ? [boneCalciumStep, boneBisphosphonateStep, boneDXAStep] : [];
+    }
+    if (insertNext && insertNext.length) {
+      const toInsert = insertNext.map(s => ({ ...s, _insertedBy: step.id }));
       steps.splice(afterThis, 0, ...toInsert);
     }
 
@@ -1284,7 +1306,6 @@
     const flaggedReviewHTML = reproHTML ? `
       <div class="summary-section">
         <h3 class="section-title">Flagged For Clinical Review</h3>
-        <p class="section-hint">Objective screening results and answers — for you to review and interpret; this app doesn't recommend what, if anything, to do about them.</p>
         ${reproHTML}
       </div>` : '';
 
@@ -1716,7 +1737,6 @@ ${styleBlocks}
     // Flagged For Clinical Review (neutral facts)
     if (data.repro && data.repro.current) {
       sectionTitle('Flagged For Clinical Review');
-      sectionHint("Objective screening results and answers — for review; not a recommendation.");
 
       const r = data.repro;
       let reproText = `Currently pregnant or breastfeeding: ${r.current}.`;
