@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLE Pre-Visit Check</title>
 <title>SLE Pre-Visit Check</title>
 <style>
   :root {
@@ -591,6 +592,7 @@
   const ALCOHOL_SUPPORT_LINK = { label: "NHS — Alcohol Support", url: "https://www.nhs.uk/live-well/alcohol-advice/alcohol-support/", domain: "Alcohol" };
   const ALCOHOL_UNITS_LINK = { label: "NHS — Calculating Alcohol Units", url: "https://www.nhs.uk/live-well/alcohol-advice/calculating-alcohol-units/", domain: "Alcohol" };
   const EXERCISE_LINK = { label: "NHS — Physical Activity Guidelines For Adults", url: "https://www.nhs.uk/live-well/exercise/physical-activity-guidelines-for-adults-aged-19-to-64/", domain: "Physical Activity" };
+  const HCQ_EYE_LINK = { label: "Macular Society — Hydroxychloroquine Retinopathy Screening", url: "https://www.macularsociety.org/diagnosis-treatment/how/hcq-retinopathy-screening/", domain: "Hydroxychloroquine / Mepacrine" };
 
   const GENERAL_RESOURCES = [
     { label: "NHS — Lupus Information", url: "https://www.nhs.uk/conditions/lupus/", domain: "General" },
@@ -812,6 +814,44 @@
     ]
   };
 
+  // Hydroxychloroquine/mepacrine retinopathy-screening chain. Only asked of patients who are
+  // currently taking one of these antimalarials, and only escalates to asking about screening
+  // once they've taken it for more than 5 years — annual retinal screening is specifically
+  // recommended from that point on, per Royal College of Ophthalmologists guidance.
+  const hcqEyeScreenStep = {
+    id: "hcqEyeScreen", domain: "Hydroxychloroquine / Mepacrine",
+    question: "Have you had an annual eye (retinal) screening appointment in the last year?",
+    options: [
+      { text: "Yes", flag: null },
+      { text: "No", flag: {
+          type: "yellow",
+          text: "On hydroxychloroquine or mepacrine for more than 5 years, without an annual eye screening appointment in the last year.",
+          personalAction: "Ask your GP practice or eye clinic to book your annual retinal screening appointment — this checks for a rare but important side effect of long-term antimalarial use.",
+          personalCategory: "Hydroxychloroquine / Mepacrine",
+          clinicianBucket: "gp",
+          clinicianAction: "On hydroxychloroquine or mepacrine for more than 5 years, without an annual retinal screening appointment in the last year — arrange/refer for retinopathy screening per RCOphth guidance.",
+          resources: [HCQ_EYE_LINK]
+      }},
+      { text: "Not sure", flag: {
+          type: "yellow",
+          text: "Not sure whether an annual eye (retinal) screening appointment has happened in the last year.",
+          personalAction: "Check with your GP practice or eye clinic whether you're up to date with your annual antimalarial eye screening.",
+          personalCategory: "Hydroxychloroquine / Mepacrine",
+          clinicianBucket: "gp",
+          clinicianAction: "On hydroxychloroquine or mepacrine for more than 5 years, unsure of retinal screening status — check records and arrange screening if overdue.",
+          resources: [HCQ_EYE_LINK]
+      }}
+    ]
+  };
+  const hcqDurationStep = {
+    id: "hcqDuration", domain: "Hydroxychloroquine / Mepacrine",
+    question: "Have you been taking hydroxychloroquine or mepacrine for more than 5 years?",
+    options: [
+      { text: "No", flag: null },
+      { text: "Yes", flag: null, insertNext: [hcqEyeScreenStep] }
+    ]
+  };
+
   const steps = [
     {
       id: "topConcern", domain: "Your Main Concern", type: "text",
@@ -938,6 +978,14 @@
       options: [
         { text: "No", flag: null },
         { text: "Yes", flag: null, insertNext: [boneCalciumStep, boneBisphosphonateStep, boneDXAStep] }
+      ]
+    },
+    {
+      id: "hcqScreen", domain: "Hydroxychloroquine / Mepacrine",
+      question: "Do you currently take hydroxychloroquine or mepacrine?",
+      options: [
+        { text: "No", flag: null },
+        { text: "Yes", flag: null, insertNext: [hcqDurationStep] }
       ]
     },
     {
@@ -1180,7 +1228,8 @@
     { keys: ['vaccin'], svg: '<line x1="18" y1="2" x2="22" y2="6"/><line x1="17" y1="7" x2="20" y2="4"/><line x1="7" y1="17" x2="4" y2="20"/><line x1="4" y1="20" x2="2" y2="22"/><line x1="7" y1="7" x2="17" y2="17"/><line x1="9" y1="5" x2="12" y2="8"/><line x1="5" y1="9" x2="8" y2="12"/>' },
     { keys: ['fatigue'], svg: '<rect x="2" y="7" width="18" height="10" rx="2"/><line x1="22" y1="10" x2="22" y2="14"/><rect x="4" y="9" width="4" height="6" fill="currentColor" stroke="none"/>' },
     { keys: ['cardiovascular', 'diet', 'exercise', 'physical activity'], svg: '<path d="M12 21s-7.5-4.6-10-9.3C.5 8.5 2 4.8 5.6 4c2-.4 3.8.6 4.9 2.2C11.6 4.6 13.4 3.6 15.4 4c3.6.8 5.1 4.5 3.6 7.7C20.5 16.4 12 21 12 21Z"/><path d="M8 12h2l1.5-2 1 4 1.5-2H16"/>' },
-    { keys: ['smoking'], svg: '<line x1="2" y1="18" x2="14" y2="18"/><line x1="2" y1="15" x2="14" y2="15"/><path d="M14 15v3"/><path d="M17 12c0-1.5 1-1.5 1-3s-1-1.5-1-3"/><path d="M20 12c0-1.5 1-1.5 1-3s-1-1.5-1-3"/><line x1="3" y1="3" x2="21" y2="21"/>' }
+    { keys: ['smoking'], svg: '<line x1="2" y1="18" x2="14" y2="18"/><line x1="2" y1="15" x2="14" y2="15"/><path d="M14 15v3"/><path d="M17 12c0-1.5 1-1.5 1-3s-1-1.5-1-3"/><path d="M20 12c0-1.5 1-1.5 1-3s-1-1.5-1-3"/><line x1="3" y1="3" x2="21" y2="21"/>' },
+    { keys: ['hydroxychloroquine', 'eye'], svg: '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/>' }
   ];
   const FALLBACK_ICON_SVG = '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v2H9z"/><path d="M8 11l2 2 4-4"/><line x1="8" y1="16" x2="16" y2="16"/>';
   const ALL_GOOD_ICON_SVG = '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/>';
@@ -1914,5 +1963,5 @@ ${styleBlocks}
   applyFontSizeClass();
   render();
 </script>
-</body>
-</html>
+
+</body></html>
