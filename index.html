@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SLE Pre-Visit Check</title>
-<title>SLE Pre-Visit Check</title>
 <style>
   :root {
     color-scheme: light dark;
@@ -211,8 +210,15 @@
     letter-spacing: 0.2px;
   }
 
-  .progress-container { background: var(--surface-2); height: 6px; width: 100%; }
+  .progress-container { display: flex; gap: 4px; padding: 10px clamp(18px, 5vw, 48px) 0; }
+  .progress-segment { flex: 1; background: var(--surface-2); height: 6px; border-radius: 3px; overflow: hidden; }
   .progress-bar { background: var(--accent); height: 100%; width: 0%; transition: width 0.3s ease; }
+  .progress-section-label {
+    margin: 6px clamp(18px, 5vw, 48px) 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
 
   .a11y-bar {
     display: flex;
@@ -252,6 +258,14 @@
     padding: clamp(18px, 2.4vw, 28px);
     margin-bottom: 14px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    animation: cardFadeIn 0.28s ease;
+  }
+  @keyframes cardFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card { animation: none; }
   }
 
   .step-tag {
@@ -266,6 +280,15 @@
     text-transform: uppercase;
     letter-spacing: 0.4px;
   }
+  .step-tag-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .step-tag-row .step-tag { margin-bottom: 0; }
+  .step-tag-icon {
+    flex-shrink: 0; width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--accent-hover);
+  }
+  .step-tag-icon .item-icon-svg { width: 15px; height: 15px; }
 
   h2 { font-size: clamp(1.08rem, 1rem + 0.6vw, 1.5rem); color: var(--header-bg-2); margin: 0 0 12px; line-height: 1.4; }
   :root[data-theme="dark"] h2 { color: var(--accent-hover); }
@@ -300,8 +323,14 @@
     background: var(--surface);
     border-top: 1px solid var(--border);
     display: flex;
+    flex-wrap: wrap;
     gap: 12px;
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.06);
   }
+  footer.app-footer:empty { display: none; }
 
   .btn {
     flex: 1;
@@ -448,32 +477,6 @@
   }
   .save-btn:hover { background: var(--surface-2); }
 
-  .image-btn {
-    width: 100%;
-    padding: 13px;
-    border-radius: 8px;
-    border: none;
-    background: var(--accent);
-    color: var(--accent-contrast);
-    font-weight: 600;
-    font-size: 0.95rem;
-    cursor: pointer;
-  }
-  .image-btn:hover { background: var(--accent-hover); }
-
-  .page-btn {
-    width: 100%;
-    padding: 13px;
-    border-radius: 8px;
-    border: 2px solid var(--accent);
-    background: transparent;
-    color: var(--accent-hover);
-    font-weight: 600;
-    font-size: 0.95rem;
-    cursor: pointer;
-  }
-  .page-btn:hover { background: var(--surface-2); }
-
   .img-overlay {
     position: fixed;
     inset: 0;
@@ -556,7 +559,7 @@
   @media print {
     body { background: #fff; }
     .app-container { box-shadow: none; max-width: 100%; }
-    .progress-container, footer.app-footer, .options-group, .step-tag, .email-box { display: none !important; }
+    .progress-container, .progress-section-label, footer.app-footer, .options-group, .step-tag, .step-tag-icon, .email-box { display: none !important; }
     header.app-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .card { break-inside: avoid; border: 1px solid #ccc; }
   }
@@ -569,7 +572,14 @@
     <p class="subtitle" id="header-subtitle">Pre-Consultation Health Check · Non-Medication Care &amp; Adherence</p>
   </header>
 
-  <div class="progress-container"><div class="progress-bar" id="progress"></div></div>
+  <!-- One segment per SECTION_ORDER entry defined in the script below — keep these in sync. -->
+  <div class="progress-container">
+    <div class="progress-segment"><div class="progress-bar" id="progress-seg-0"></div></div>
+    <div class="progress-segment"><div class="progress-bar" id="progress-seg-1"></div></div>
+    <div class="progress-segment"><div class="progress-bar" id="progress-seg-2"></div></div>
+    <div class="progress-segment"><div class="progress-bar" id="progress-seg-3"></div></div>
+  </div>
+  <p class="progress-section-label" id="progress-section-label"></p>
 
   <div class="a11y-bar">
     <div class="a11y-group" role="group" aria-label="Text size">
@@ -1063,7 +1073,59 @@
 
   const contentEl = document.getElementById('content');
   const footerEl = document.getElementById('footer-nav');
-  const progressBar = document.getElementById('progress');
+
+  // Groups steps into a small number of named sections for the progress indicator, so patients
+  // get a sense of "Medication — Step 2 of 3" rather than just a vague overall percentage.
+  // The progress-container HTML above must have exactly one .progress-segment per entry here.
+  const SECTION_ORDER = ["About You", "Medication", "Prevention & Safety", "Lifestyle & Wellbeing"];
+  const SECTION_BY_STEP_ID = {
+    topConcern: "About You", age: "About You",
+    medication: "Medication", medicationReason: "Medication",
+    hcqScreen: "Medication", hcqDuration: "Medication", hcqEyeScreen: "Medication",
+    currentPregnancy: "Prevention & Safety", pregnancyScreen: "Prevention & Safety",
+    contraception: "Prevention & Safety", pregnancyIntent: "Prevention & Safety",
+    photoprotection: "Prevention & Safety", vaccinations: "Prevention & Safety",
+    fatigue: "Lifestyle & Wellbeing", boneScreener: "Lifestyle & Wellbeing",
+    boneCalcium: "Lifestyle & Wellbeing", boneBisphosphonate: "Lifestyle & Wellbeing", boneDXA: "Lifestyle & Wellbeing",
+    cvRisk: "Lifestyle & Wellbeing", smoking: "Lifestyle & Wellbeing",
+    alcoholScreen: "Lifestyle & Wellbeing", alcoholUnits: "Lifestyle & Wellbeing", exercise: "Lifestyle & Wellbeing"
+  };
+  function sectionForStep(step) { return SECTION_BY_STEP_ID[step.id] || step.domain; }
+
+  // Fills each section's segment (fully, partially, or not at all) and updates the
+  // "<Section> — Step X of Y" label beneath it, based on where the patient currently is.
+  function updateProgress() {
+    const label = document.getElementById('progress-section-label');
+    if (currentStep === -1) {
+      SECTION_ORDER.forEach((_, idx) => {
+        const seg = document.getElementById('progress-seg-' + idx);
+        if (seg) seg.style.width = '0%';
+      });
+      if (label) label.textContent = '';
+      return;
+    }
+    if (currentStep >= steps.length) {
+      SECTION_ORDER.forEach((_, idx) => {
+        const seg = document.getElementById('progress-seg-' + idx);
+        if (seg) seg.style.width = '100%';
+      });
+      if (label) label.textContent = '';
+      return;
+    }
+    const step = steps[currentStep];
+    const section = sectionForStep(step);
+    const sectionIdx = SECTION_ORDER.indexOf(section);
+    const sectionSteps = steps.filter(s => sectionForStep(s) === section);
+    const posInSection = sectionSteps.indexOf(step) + 1;
+    SECTION_ORDER.forEach((_, idx) => {
+      const seg = document.getElementById('progress-seg-' + idx);
+      if (!seg) return;
+      if (idx < sectionIdx) seg.style.width = '100%';
+      else if (idx === sectionIdx) seg.style.width = `${(posInSection / sectionSteps.length) * 100}%`;
+      else seg.style.width = '0%';
+    });
+    if (label) label.textContent = `${section} — Step ${posInSection} of ${sectionSteps.length}`;
+  }
 
   // Neutral fact display for the summary page — reports the pregnancy-potential, LARC and
   // pregnancy-intent answers as-is, for the clinician to review and interpret themselves,
@@ -1107,7 +1169,7 @@
 
   function render() {
     if (currentStep === -1) {
-      progressBar.style.width = "0%";
+      updateProgress();
       contentEl.innerHTML = `
         <div class="card">
           <span class="step-tag">Pre-Appointment Tool</span>
@@ -1119,12 +1181,15 @@
       footerEl.innerHTML = `<button class="btn btn-primary" onclick="nextStep()">Begin Screening</button>`;
     } else if (currentStep < steps.length) {
       const step = steps[currentStep];
-      progressBar.style.width = `${((currentStep + 1) / steps.length) * 100}%`;
+      updateProgress();
 
       if (step.type === "text") {
         contentEl.innerHTML = `
           <div class="card">
-            <span class="step-tag">${step.domain} — Question ${currentStep + 1} of ${steps.length}</span>
+            <div class="step-tag-row">
+              <span class="step-tag-icon">${getCategoryIcon(step.domain)}</span>
+              <span class="step-tag">${step.domain} — Question ${currentStep + 1} of ${steps.length}</span>
+            </div>
             <h2>${step.question}</h2>
             <textarea id="text-step-input" class="text-input" rows="3" placeholder="${step.placeholder || ''}"></textarea>
             <div class="options-group" style="margin-top:14px;">
@@ -1148,7 +1213,10 @@
 
         contentEl.innerHTML = `
           <div class="card">
-            <span class="step-tag">${step.domain} — Question ${currentStep + 1} of ${steps.length}</span>
+            <div class="step-tag-row">
+              <span class="step-tag-icon">${getCategoryIcon(step.domain)}</span>
+              <span class="step-tag">${step.domain} — Question ${currentStep + 1} of ${steps.length}</span>
+            </div>
             <h2>${step.question}</h2>
             ${step.hint ? `<p class="section-hint">${step.hint}</p>` : ''}
             <div class="options-group">${optionsHTML}</div>
@@ -1157,7 +1225,7 @@
       }
       footerEl.innerHTML = currentStep > 0 ? `<button class="btn btn-secondary" onclick="prevStep()">Back</button>` : '';
     } else {
-      progressBar.style.width = "100%";
+      updateProgress();
       renderSummary();
     }
   }
@@ -1404,12 +1472,7 @@
 
         <div class="summary-section email-box">
           <h3 class="section-title" style="margin-bottom:10px;">Keep A Copy Of This Plan</h3>
-
-          <p class="email-hint" style="margin:0 0 10px;">A visual summary card you can save to your phone — show it at today's appointment, or come back to it afterwards.</p>
-          <button class="image-btn" id="image-btn" onclick="showSummaryImage()">View &amp; Save Visual Summary</button>
-
-          <p class="email-hint" style="margin:14px 0 8px;">Prefer to keep the links and tick boxes usable? Save this as a webpage you can reopen any time in your phone's browser.</p>
-          <button class="page-btn" id="page-btn" onclick="saveSummaryPage()">Save Summary As Webpage</button>
+          <p class="email-hint" style="margin:0 0 10px;">Use the Save buttons below (they stay with you as you scroll) for a visual summary card for your phone, or a reopenable webpage with working links and tick boxes.</p>
 
           <button class="save-btn" id="save-btn" onclick="saveActionPlan()" hidden>Save Text To My Phone</button>
           <p class="email-status" id="save-status" hidden></p>
@@ -1426,7 +1489,11 @@
       }).catch(() => {});
     }
 
+    // The save actions live in the sticky footer (not buried in the email-box above) so they
+    // stay reachable without scrolling through a long, heavily-flagged summary.
     footerEl.innerHTML = `
+      <button class="btn btn-secondary" onclick="showSummaryImage()">Save Image</button>
+      <button class="btn btn-primary" id="page-btn" onclick="saveSummaryPage()">Save Webpage</button>
       <button class="btn btn-secondary" onclick="location.reload()">Restart</button>
     `;
   }
@@ -1477,7 +1544,7 @@ ${styleBlocks}
         const downloads = await window.claude.use('downloads').catch(() => null);
         if (downloads) {
           await downloads.save({ filename, data: html });
-          if (btn) { btn.textContent = 'Saved'; setTimeout(() => { btn.textContent = 'Save Summary As Webpage'; }, 1500); }
+          if (btn) { btn.textContent = 'Saved'; setTimeout(() => { btn.textContent = 'Save Webpage'; }, 1500); }
           return;
         }
       } catch (err) {
@@ -1495,7 +1562,7 @@ ${styleBlocks}
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    if (btn) { btn.textContent = 'Saved'; setTimeout(() => { btn.textContent = 'Save Summary As Webpage'; }, 1500); }
+    if (btn) { btn.textContent = 'Saved'; setTimeout(() => { btn.textContent = 'Save Webpage'; }, 1500); }
   }
 
   // ---------------------------------------------------------------------------------------
@@ -1958,7 +2025,7 @@ ${styleBlocks}
     const downloads = window.claude && window.claude.use ? await window.claude.use("downloads").catch(() => null) : null;
     if (!downloads) {
       status.style.color = 'var(--flag-red-text)';
-      status.textContent = "Saving isn't available here — try Save Summary As Webpage instead.";
+      status.textContent = "Saving isn't available here — try the Save Webpage button below instead.";
       return;
     }
 
@@ -1975,7 +2042,7 @@ ${styleBlocks}
       } else if (err && err.code === 'rate_limited') {
         status.textContent = 'Please wait a moment and try again.';
       } else {
-        status.textContent = "Couldn't save here — try Save Summary As Webpage instead.";
+        status.textContent = "Couldn't save here — try the Save Webpage button below instead.";
       }
     }
   }
