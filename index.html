@@ -463,19 +463,17 @@
   .email-hint { font-size: 0.75rem; color: var(--text-muted); margin: 8px 0 0; line-height: 1.4; }
   .email-status { font-size: 0.8rem; margin-top: 8px; color: var(--flag-green-text); }
 
-  .save-btn {
-    width: 100%;
+  .export-btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-top: 14px;
-    padding: 12px;
-    border-radius: 8px;
-    border: 2px solid var(--accent);
-    background: transparent;
-    color: var(--accent-hover);
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
   }
-  .save-btn:hover { background: var(--surface-2); }
+  .export-btn-row .btn {
+    flex: 1 1 160px;
+    padding: 12px;
+    font-size: 0.88rem;
+  }
 
   .img-overlay {
     position: fixed;
@@ -562,6 +560,22 @@
     .progress-container, .progress-section-label, footer.app-footer, .options-group, .step-tag, .step-tag-icon, .email-box { display: none !important; }
     header.app-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .card { break-inside: avoid; border: 1px solid #ccc; }
+
+    /* "Print / Save as PDF" for just the Personal Action Plan: printActionPlan() toggles this
+       class on <body> around window.print(), hiding every other summary section so the printed
+       page (or Save-as-PDF output) contains only the action plan and its resources. */
+    body.print-action-plan-only h2,
+    body.print-action-plan-only .description,
+    body.print-action-plan-only .summary-section:not(.action-plan-section):not(.action-plan-extra) {
+      display: none !important;
+    }
+    body.print-action-plan-only .action-plan-section::before {
+      content: "My Personal Action Plan";
+      display: block;
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
   }
 </style>
 </head>
@@ -1446,14 +1460,14 @@
           ${gpHTML}
         </div>
 
-        <div class="summary-section">
+        <div class="summary-section action-plan-section">
           <h3 class="section-title">Personal Action Plan</h3>
           <p class="section-hint">Things you can do yourself.</p>
           ${personalHTML}
         </div>
 
         ${contextualResourcesHTML ? `
-        <div class="summary-section">
+        <div class="summary-section action-plan-extra">
           <h3 class="section-title">Resources For You</h3>
           ${contextualResourcesHTML}
         </div>` : ''}
@@ -1471,25 +1485,19 @@
         ${buildSummaryCardHTML()}
 
         <div class="summary-section email-box">
-          <h3 class="section-title" style="margin-bottom:10px;">Keep A Copy Of This Plan</h3>
-          <p class="email-hint" style="margin:0 0 10px;">Use the Save buttons below (they stay with you as you scroll) for a visual summary card for your phone, or a reopenable webpage with working links and tick boxes.</p>
+          <h3 class="section-title" style="margin-bottom:10px;">Export Your Personal Action Plan</h3>
+          <p class="email-hint" style="margin:0 0 10px;">Just the things you can do yourself — as a printable page (or Save as PDF), or a plain text file.</p>
 
-          <button class="save-btn" id="save-btn" onclick="saveActionPlan()" hidden>Save Text To My Phone</button>
+          <div class="export-btn-row">
+            <button class="btn btn-secondary" onclick="printActionPlan()">Print / Save as PDF</button>
+            <button class="btn btn-secondary" id="save-btn" onclick="saveActionPlan()">Save as Text File</button>
+          </div>
           <p class="email-status" id="save-status" hidden></p>
         </div>
       </div>
     `;
 
-    // The on-device save button only works where the platform's downloads
-    // capability is available — feature-detect and reveal it, rather than
-    // showing a control that can't do anything.
-    if (window.claude && window.claude.use) {
-      window.claude.use("downloads").then(d => {
-        if (d) document.getElementById('save-btn').hidden = false;
-      }).catch(() => {});
-    }
-
-    // The save actions live in the sticky footer (not buried in the email-box above) so they
+    // The save actions for the whole summary (not just the action plan) live in the sticky footer so they
     // stay reachable without scrolling through a long, heavily-flagged summary.
     footerEl.innerHTML = `
       <button class="btn btn-secondary" onclick="showSummaryImage()">Save Image</button>
@@ -1977,7 +1985,7 @@ ${styleBlocks}
 
     const repro = computeReproductiveHealthSummary();
     if (repro) {
-      text += 'FLAGGED FOR CLINICAL REVIEW (objective results/answers only — not a recommendation)\n';
+      text += 'FLAGGED FOR CLINICAL REVIEW\n';
       if (repro) {
         text += '- Reproductive Health: currently pregnant or breastfeeding — ' + repro.current + '.';
         if (repro.pregnancyPotential) text += ' Capable of becoming pregnant — ' + repro.pregnancyPotential + '.';
@@ -2022,29 +2030,64 @@ ${styleBlocks}
     status.style.color = 'var(--text-muted)';
     status.textContent = 'Preparing…';
 
-    const downloads = window.claude && window.claude.use ? await window.claude.use("downloads").catch(() => null) : null;
-    if (!downloads) {
-      status.style.color = 'var(--flag-red-text)';
-      status.textContent = "Saving isn't available here — try the Save Webpage button below instead.";
-      return;
-    }
-
     const text = buildActionPlanText();
     const dateStamp = new Date().toISOString().slice(0, 10);
-    try {
-      const result = await downloads.save({ filename: `SLE-Action-Plan-${dateStamp}.txt`, data: text });
-      status.style.color = 'var(--flag-green-text)';
-      status.textContent = result.status === 'saved' ? 'Saved to your phone.' : 'Sent to your chosen app.';
-    } catch (err) {
-      status.style.color = 'var(--flag-red-text)';
-      if (err && err.code === 'declined') {
-        status.textContent = 'Save cancelled.';
-      } else if (err && err.code === 'rate_limited') {
-        status.textContent = 'Please wait a moment and try again.';
-      } else {
-        status.textContent = "Couldn't save here — try the Save Webpage button below instead.";
+    const filename = `SLE-Action-Plan-${dateStamp}.txt`;
+
+    // Prefer the platform's own downloads capability where it's available (a nicer native
+    // save sheet) — but this button must also work on the plain exported webpage, where
+    // window.claude doesn't exist, so it falls through to a normal browser download below.
+    if (window.claude && window.claude.use) {
+      try {
+        const downloads = await window.claude.use("downloads").catch(() => null);
+        if (downloads) {
+          const result = await downloads.save({ filename, data: text });
+          status.style.color = 'var(--flag-green-text)';
+          status.textContent = result.status === 'saved' ? 'Saved to your phone.' : 'Sent to your chosen app.';
+          return;
+        }
+      } catch (err) {
+        if (err && err.code === 'declined') { status.textContent = 'Save cancelled.'; return; }
+        if (err && err.code === 'rate_limited') {
+          status.style.color = 'var(--flag-red-text)';
+          status.textContent = 'Please wait a moment and try again.';
+          return;
+        }
+        // any other error — fall through to the plain browser download below
       }
     }
+
+    try {
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      status.style.color = 'var(--flag-green-text)';
+      status.textContent = 'Downloaded.';
+    } catch (err) {
+      status.style.color = 'var(--flag-red-text)';
+      status.textContent = "Couldn't save here — try the Save Webpage button below instead.";
+    }
+  }
+
+  // "Print / Save as PDF" for just the Personal Action Plan. Rather than building a second,
+  // separate printable document, this briefly tags <body> with a class that the @media print
+  // CSS uses to hide every other summary section, triggers the browser's native print dialog
+  // (which on most phones offers "Save as PDF" directly), then removes the tag again once
+  // printing is done so the live screen is unaffected.
+  function printActionPlan() {
+    document.body.classList.add('print-action-plan-only');
+    const cleanup = () => document.body.classList.remove('print-action-plan-only');
+    window.addEventListener('afterprint', cleanup, { once: true });
+    window.print();
+    // Safety net only, in case 'afterprint' never fires on some browser — long enough not to
+    // interrupt someone still looking at the print/Save-as-PDF dialog.
+    setTimeout(cleanup, 20000);
   }
 
   applyFontSizeClass();
